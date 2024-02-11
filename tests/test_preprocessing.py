@@ -10,8 +10,17 @@ from plap.core.preprocessing import Preprocessing
 @pytest.mark.parametrize(
     "file, block_size, overlap, expected_nblocks",
     [
-        ("data/001_guit_solo.wav", 512, 0, 7665),
-        ("data/001_guit_solo.wav", 256, 50, 30662),
+        (
+            "data/001_guit_solo.wav",
+            512,
+            0,
+            np.floor(3924900/512) + 1),
+        (
+            "data/001_guit_solo.wav",
+            512,
+            50,
+            np.floor((3924900 - 256) / (512 - 256)) + 1,
+        ),
     ],
 )
 def test_framing(file, block_size, overlap, expected_nblocks):
