@@ -1,15 +1,18 @@
 import numpy as np
 import pytest
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 from plap.core.audio_info import AudioInfo
 
-@pytest.mark.parametrize("file, expected_signal_shape, expected_sample_rate",
-                         [
-                             ('data/001_guit_solo.wav', (3924900,), 44100),
-                             ('data/redhot.wav', (661500,), 22050),
-                         ])
 
+@pytest.mark.parametrize(
+    "file, expected_signal_shape, expected_sample_rate",
+    [
+        ("data/001_guit_solo.wav", (3924900,), 44100),
+        ("data/redhot.wav", (661500,), 22050),
+    ],
+)
 def test_init(file, expected_signal_shape, expected_sample_rate):
 
     x = AudioInfo(file)
