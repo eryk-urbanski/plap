@@ -38,3 +38,12 @@ def zero_crossing_rate(frames):
         zcr = np.sum(np.abs(np.diff(np.sign(frame))) / 2)
         zcr_values.append(zcr)
     return np.array(zcr_values)
+
+def temporal_centroid(audio_signal, sample_rate):
+  
+    weighted_sum = np.sum(np.arange(len(audio_signal)) * np.abs(audio_signal))
+    amplitude_sum = np.sum(np.abs(audio_signal)) 
+    tc_samples = weighted_sum / amplitude_sum if amplitude_sum != 0 else 0
+    tc_seconds = tc_samples / sample_rate
+    
+    return tc_seconds
