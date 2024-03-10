@@ -16,10 +16,10 @@ from plap.core.preprocessing import Preprocessing
             0,
             np.floor(3924900/512) + 1),
         (
-            "data/001_guit_solo.wav",
+            "data/redhot.wav",
             512,
-            50,
-            np.floor((3924900 - 256) / (512 - 256)) + 1,
+            0,
+            np.floor(661500/512) + 1,
         ),
     ],
 )
@@ -28,10 +28,7 @@ def test_framing(file, block_size, overlap, expected_nblocks):
     x = AudioInfo(file)
     Preprocessing.framing(x, block_size, overlap)
 
-    assert all(
-        isinstance(arr, np.ndarray) and arr.size == block_size for arr in x.blocks
-    )
-    assert len(x.blocks) == expected_nblocks
+    assert x.blocks.shape == (expected_nblocks, block_size)
 
 
 @pytest.mark.parametrize(
@@ -44,7 +41,7 @@ def test_windowing(file, block_size, overlap, window_type):
     Preprocessing.framing(x, block_size, overlap)
     Preprocessing.windowing(x, window_type)
 
-    assert all(isinstance(arr, np.ndarray) for arr in x.windowed_blocks)
+    assert x.windowed_blocks.shape == x.blocks.shape
 
 
 @pytest.mark.parametrize(
@@ -59,6 +56,4 @@ def test_fft(file, block_size, overlap, window_type):
     Preprocessing.framing(x, block_size, overlap)
     Preprocessing.windowing(x, window_type)
     Preprocessing.fft(x)
-
-    assert all(isinstance(arr, np.ndarray) for arr in x.dft_blocks)
-    assert len(x.dft_blocks) == len(x.windowed_blocks)
+    assert x.dft_blocks.shape == x.windowed_blocks.shape

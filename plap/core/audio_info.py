@@ -3,8 +3,8 @@ import soundfile as sf
 
 class AudioInfo:
     """
-    A class used to load audio from files 
-    and hold its properties and extracted features.
+    Facilitates audio input from files 
+    and holding its properties and extracted features.
 
     ...
 
@@ -14,12 +14,6 @@ class AudioInfo:
         The sample rate of audio
     signal : numpy.ndarray
         Audio data
-    blocks: List[numpy.ndarray]
-        Framed audio data
-    windowed_blocks: List[numpy.ndarray]
-        Frames multiplied by a window function
-    dft_blocks: List[numpy.ndarray]
-        Fast Fourier Transform (FFT) result for each frame
 
     """
 
@@ -30,8 +24,4 @@ class AudioInfo:
         file: str
             name of the audio file
         """
-
         self.signal, self.sample_rate = sf.read(file)
-        self.blocks = []
-        self.windowed_blocks = []
-        self.dft_blocks = []
