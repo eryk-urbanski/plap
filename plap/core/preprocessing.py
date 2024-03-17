@@ -11,11 +11,10 @@ class Preprocessing:
     """
 
     @staticmethod
-    def framing(audio_info: AudioInfo, block_size: int, overlap: int):
+    def framing(audio_info: AudioInfo, block_size: int, overlap: int) -> np.ndarray:
         """
         Divides an audio signal into frames.
         Currently does not support overlapping.
-        Adds or sets the AudioInfo object's blocks attribute.
 
         Parameters
         ----------
@@ -26,14 +25,19 @@ class Preprocessing:
         overlap : int
             The overlapping rate.
 
+        Returns
+        -------
+        blocks : numpy array
+            Framed signal.
+
         """
         # step = round((100 - overlap) / 100.0 * block_size)
         step = block_size
         length = audio_info.signal.size
-        nblocks = int(np.floor(length/step) + 1)
-        setattr(audio_info, "blocks", np.zeros((nblocks, block_size)))
+        nblocks = length // step + 1
+        blocks = np.zeros((nblocks, block_size))
         for i in range(nblocks-1):
-            audio_info.blocks[i] = audio_info.signal[i*step : i*step + block_size]
+            blocks[i] = audio_info.signal[i*step : i*step + block_size]
         if length % step != 0:
             remaining_samples = length % step
             last_block = np.pad(
@@ -41,14 +45,14 @@ class Preprocessing:
                 (0, block_size - remaining_samples),
                 mode="constant",
             )
-            audio_info.blocks[-1] = last_block
+            blocks[-1] = last_block
+        return blocks
 
     @staticmethod
-    def windowing(audio_info: AudioInfo, window_type: str):
+    def windowing(blocks: np.ndarray, window_type: str) -> np.ndarray:
         """
         Applies a window function to each frame.
         Currently supports window types available in scipy's signal module.
-        Adds or sets the AudioInfo object's windowed_blocks attribute.
 
         Parameters
         ----------
@@ -57,23 +61,32 @@ class Preprocessing:
         window_type : str
             The window type.
 
+        Returns
+        -------
+        windowed_blocks : numpy array
+            Windowed signal frames.
+
         """
-        w = get_window(window=window_type, Nx=len(audio_info.blocks[0]))
-        windowed_blocks = np.multiply(audio_info.blocks[:], w)
-        setattr(audio_info, "windowed_blocks", windowed_blocks)
+        w = get_window(window=window_type, Nx=len(blocks[0]))
+        windowed_blocks = np.multiply(blocks[:], w)
+        return windowed_blocks
 
     @staticmethod
-    def fft(audio_info: AudioInfo):
+    def fft(windowed_blocks: np.ndarray) -> np.ndarray:
         """
         Compute the Fast Fourier Transform (FFT) for each frame.
-        Adds or sets the AudioInfo object's dft_blocks attribute.
 
         Parameters
         ----------
         audio_info : AudioInfo
             The input audio_info object.
 
+        Returns
+        -------
+        dft_blocks : numpy array
+            FFT blocks.
+
         """
-        dft_blocks = np.apply_along_axis(scifft, 1, audio_info.windowed_blocks)
-        setattr(audio_info, "dft_blocks", dft_blocks)
+        dft_blocks = np.apply_along_axis(scifft, 1, windowed_blocks)
+        return dft_blocks
         

@@ -26,9 +26,9 @@ from plap.core.preprocessing import Preprocessing
 def test_framing(file, block_size, overlap, expected_nblocks):
 
     x = AudioInfo(file)
-    Preprocessing.framing(x, block_size, overlap)
+    blocks = Preprocessing.framing(x, block_size, overlap)
 
-    assert x.blocks.shape == (expected_nblocks, block_size)
+    assert blocks.shape == (expected_nblocks, block_size)
 
 
 @pytest.mark.parametrize(
@@ -38,10 +38,9 @@ def test_framing(file, block_size, overlap, expected_nblocks):
 def test_windowing(file, block_size, overlap, window_type):
 
     x = AudioInfo(file)
-    Preprocessing.framing(x, block_size, overlap)
-    Preprocessing.windowing(x, window_type)
-
-    assert x.windowed_blocks.shape == x.blocks.shape
+    blocks = Preprocessing.framing(x, block_size, overlap)
+    windowed_blocks = Preprocessing.windowing(blocks=blocks, window_type=window_type)
+    assert windowed_blocks.shape == blocks.shape
 
 
 @pytest.mark.parametrize(
@@ -53,7 +52,7 @@ def test_windowing(file, block_size, overlap, window_type):
 def test_fft(file, block_size, overlap, window_type):
 
     x = AudioInfo(file)
-    Preprocessing.framing(x, block_size, overlap)
-    Preprocessing.windowing(x, window_type)
-    Preprocessing.fft(x)
-    assert x.dft_blocks.shape == x.windowed_blocks.shape
+    blocks = Preprocessing.framing(x, block_size, overlap)
+    windowed_blocks = Preprocessing.windowing(blocks=blocks, window_type=window_type)
+    dft_blocks = Preprocessing.fft(windowed_blocks=windowed_blocks)
+    assert dft_blocks.shape == windowed_blocks.shape
