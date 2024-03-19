@@ -11,6 +11,7 @@ class Cepstral:
     Currently supports MFCCs.
 
     """
+
     def __init__(
         self,
         audio_info: AudioInfo,
@@ -26,17 +27,22 @@ class Cepstral:
         creation and coefficient extraction.
 
         """
-        self.audio_info = audio_info
-        self.block_size = block_size
-        self.window_type = window_type
-        self.overlap = overlap
-        self.step = round((100 - overlap) / 100 * block_size)
-        self.filterbank_name = filterbank_name
-        self.ncoeffs = ncoeffs
+        self._audio_info = audio_info
+        self._block_size = block_size
+        self._window_type = window_type
+        self._overlap = overlap
+        self._step = round((100 - overlap) / 100 * block_size)
+        self._filterbank_name = filterbank_name
+        self._ncoeffs = ncoeffs
 
     @staticmethod
     def mfcc(
-        audio_info: AudioInfo, ncoeffs: int, nbands: int, block_size: int, window_type: str, overlap: int
+        audio_info: AudioInfo,
+        ncoeffs: int,
+        nbands: int,
+        block_size: int,
+        window_type: str,
+        overlap: int,
     ) -> np.ndarray:
         """
         Calculates MFCCs for a given audio signal.
@@ -61,15 +67,45 @@ class Cepstral:
         Numpy array with the desired number of Mel-Frequency Cepstral Coefficients
 
         """
-        # Idea: here create a Cepstral class instance called MFCCExtractor that will hold
-        # preprocessing params, filterbank name, etc.
-        # Preprocessing COMMON, GENERALLY
-        # Get mel filter bank CHANGES
-        # Filter each frame and sum the energy COMMON, GENERALLY
-        # Apply log to each coefficient (filtered energy sum) for each frame COMMON, GENERALLY
-        # Get desired num of coefficients for
-        # each frame by applying dct to log mel filtered energy sums COMMON, GENERALLY
-        pass
+        MFCCExtractor = Cepstral(
+            audio_info=audio_info,
+            block_size=block_size,
+            window_type=window_type,
+            overlap=overlap,
+            filterbank_name="mel",
+            ncoeffs=ncoeffs,
+        )
+        # Perform necessary preprocessing
+        dft_blocks = MFCCExtractor.__preprocess()
+
+        # Create mel filterbank
+        mel_filterbank_params = [audio_info.sample_rate, block_size, nbands]
+        mel_filterbank = MFCCExtractor.__create_filterbank(params=mel_filterbank_params)
+
+        # Filter each frame and sum the energy
+        step = MFCCExtractor._step
+        nblocks = (audio_info.signal.size - block_size) // step + 1
+        x = np.zeros((nbands, nblocks))
+        for b in range(0, nblocks):
+            for i in range(0, nbands):
+                acc = 0
+                for k in range(0, block_size // 2 + 1):
+                    acc += abs(dft_blocks[b][k]) * mel_filterbank[i][k]
+                x[i][b] = acc
+
+        # Apply log to each coefficient (mel filtered energy sum) for each frame
+        xl = MFCCExtractor.__apply_log(x)
+
+        # Get desired num of mfcc coefficients for each frame
+        # by applying dct to log mel filtered energy sums
+        mfccs = np.zeros((ncoeffs, nblocks))
+        for b in range(0, nblocks):
+            for j in range(0, ncoeffs):
+                acc = 0
+                for i in range(0, nbands):
+                    acc += xl[i][b] * np.cos(j * (i - 0.5) * np.pi / nbands)
+                mfccs[j][b] = acc
+        return mfccs
 
     def __preprocess(self) -> np.ndarray:
         """
@@ -85,12 +121,12 @@ class Cepstral:
 
         """
         blocks = Preprocessing.framing(
-            audio_info=self.audio_info,
-            # block_size=self.preprocessing_params["Block Size"]
+            audio_info=self._audio_info,
+            block_size=self._block_size,
+            overlap=self._overlap,
         )
         windowed_blocks = Preprocessing.windowing(
-            blocks=blocks,
-            window_type=self.window_type
+            blocks=blocks, window_type=self._window_type
         )
         dft_blocks = Preprocessing.fft(windowed_blocks=windowed_blocks)
         return dft_blocks
@@ -112,15 +148,19 @@ class Cepstral:
         # function from filterbanks module is called and params is passed. Each of those functions
         # in that module knows how params is structured for them. For example, for mfcc params contains
         # sample_rate, block_size and nmel_bands (number of mel bands).
-        return Filterbank(name=self.filterbank_name, params=params)
+        return Filterbank(name=self._filterbank_name, params=params)
 
-    def __apply_filterbank(self, filterbank) -> np.ndarray:
-        # Applying each type of filterbanks can be different
-        # so functions TODO in filterbank.py
-        pass
+    # def __apply_filterbank(self, filterbank) -> np.ndarray:
+    #     # Applying each type of filterbanks can be different
+    #     # so it has to be implemented in respective functions
+    #     # here or maybe in filterbank.py
+    #     pass
 
-    def __apply_log(self):
-        pass
+    @staticmethod
+    def __apply_log(arr: np.ndarray) -> np.ndarray:
+        # Handle zeros entering log function
+        arr = np.where(arr == 0, arr + 1e-9, arr)
+        return np.log10(arr)
 
-    def __apply_dct(self):
-        pass
+    # def __apply_dct(self):
+    #     pass

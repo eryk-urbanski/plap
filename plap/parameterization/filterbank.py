@@ -1,18 +1,21 @@
 import numpy as np
 from scipy.signal.windows import triang
 
+
 class Filterbank:
     """
     Provides ... TODO
 
     """
-    def __init__(self, name: str, params: list):
+
+    def __new__(self, name: str, params: list):
         return {
             "mel": self.__mel_filterbank(params=params),
-            "gammatone": self.__gammatone_filterbank(params=params)
+            "gammatone": self.__gammatone_filterbank(params=params),
         }[name]
 
-    def __mel_filterbank(self, params: list) -> np.ndarray:
+    @staticmethod
+    def __mel_filterbank(params: list) -> np.ndarray:
         """
         smth TODO
 
@@ -20,7 +23,7 @@ class Filterbank:
         ----------
         params : list
             sample_rate, block_size, nmel_bands
-        
+
         """
         # asserts TODO
         sample_rate = params[0]
@@ -55,5 +58,6 @@ class Filterbank:
 
         return mel_filterbank
 
-    def __gammatone_filterbank(self, params: list) -> np.ndarray:
-        return np.zeros(()) # TODO
+    @staticmethod
+    def __gammatone_filterbank(params: list) -> np.ndarray:
+        return np.zeros(())  # TODO
