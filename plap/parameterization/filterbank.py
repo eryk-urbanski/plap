@@ -1,5 +1,9 @@
 import numpy as np
 from scipy.signal.windows import triang
+from scipy.signal import lfilter
+from spafe.fbanks.gammatone_fbanks import generate_center_frequencies
+
+
 
 
 class Filterbank:
@@ -58,6 +62,30 @@ class Filterbank:
 
         return mel_filterbank
 
+
     @staticmethod
-    def __gammatone_filterbank(params: list) -> np.ndarray:
-        return np.zeros(())  # TODO
+    def __gammatone_filterbank(sample_rate, num_filters, f_min, f_max,order =4):
+        # Constants for Gammatone filters
+        EarQ = 9.26449
+        minBW = 24.7
+
+
+        # Generating center frequencies for the filters
+        cf = generate_center_frequencies(f_min, f_max, num_filters)
+
+        filterbank = np.zeros((num_filters, int(sample_rate / 2 + 1)))
+
+        for i in range(num_filters):
+            f_center = cf[i]
+            # Calculate bandwidth
+            b = 1.019 * 24.7 * (4.37 * f_center / 1000 + 1)
+
+            # Creating filter impulse
+            t = np.arange(0, int(sample_rate / 2 + 1)) / sample_rate
+            impulse_response = t ** (order - 1) * np.exp(-2 * np.pi * b * t) * np.cos(2 * np.pi * f_center * t)
+
+            # Applying the filter for each frequency
+            filter_response = np.abs(np.fft.rfft(impulse_response))
+            filterbank[i, :] = filter_response / np.max(filter_response)  # Normalization
+
+        return filterbank, cf
