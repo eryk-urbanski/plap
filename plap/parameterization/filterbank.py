@@ -1,4 +1,5 @@
 import numpy as np
+import spafe.fbanks.gammatone_fbanks
 from scipy.signal.windows import triang
 from scipy.signal import lfilter
 from spafe.fbanks.gammatone_fbanks import generate_center_frequencies
