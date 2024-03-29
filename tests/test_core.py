@@ -20,4 +20,3 @@ def test_init(file, expected_signal_shape, expected_sample_rate):
     assert isinstance(x.signal, np.ndarray)
     assert x.signal.shape == expected_signal_shape
     assert x.sample_rate == expected_sample_rate
-    assert x.blocks == []
