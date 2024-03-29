@@ -64,7 +64,9 @@ class Cepstral:
 
         Returns
         -------
-        Numpy array with the desired number of Mel-Frequency Cepstral Coefficients
+        mfccs : numpy.ndarray
+            Desired number of Mel-Frequency Cepstral Coefficients
+            Shape: (ncoeffs, nblocks)
 
         """
         MFCCExtractor = Cepstral(
@@ -110,14 +112,14 @@ class Cepstral:
     def __preprocess(self) -> np.ndarray:
         """
         Performs necessary preprocessing on signal.
-
-        Parameters
-        ----------
-        ?
+        Currently supported cepstral features share the same
+        preprocessing pipeline composed of framing, windowing and fft.
 
         Returns
         -------
-        ?
+        dft_blocks : numpy.ndarray
+            Preprocessed signal.
+            Shape: (nblocks, block_size)
 
         """
         blocks = Preprocessing.framing(
@@ -137,11 +139,14 @@ class Cepstral:
 
         Parameters
         ----------
-        ?
+        params : list
+            Parameters needed for the creation of the desired filterbank.
+            Mel: sample_rate, block_size, nmel_bands
+            Gammatone: TODO
 
         Returns
         -------
-        ?
+        Filterbank object.
 
         """
         # Idea: takes in a list of params. self contains filter name, so an appropriate
@@ -150,17 +155,20 @@ class Cepstral:
         # sample_rate, block_size and nmel_bands (number of mel bands).
         return Filterbank(name=self._filterbank_name, params=params)
 
-    # def __apply_filterbank(self, filterbank) -> np.ndarray:
-    #     # Applying each type of filterbanks can be different
-    #     # so it has to be implemented in respective functions
-    #     # here or maybe in filterbank.py
-    #     pass
-
     @staticmethod
     def __apply_log(arr: np.ndarray) -> np.ndarray:
         # Handle zeros entering log function
+        """
+        Helper function for handling zeros entering log function.
+
+        Parameters
+        ----------
+        arr : numpy.ndarray
+
+        Returns
+        -------
+        The same array without any zero values.
+
+        """
         arr = np.where(arr == 0, arr + 1e-9, arr)
         return np.log10(arr)
-
-    # def __apply_dct(self):
-    #     pass
