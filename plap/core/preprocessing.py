@@ -6,7 +6,7 @@ import numpy as np
 
 class Preprocessing:
     """
-    A class aggregating methods for signal framing with/without overlapping, windowing and fft
+    A class aggregating methods for signal framing, windowing and fft.
 
     """
 
@@ -27,8 +27,9 @@ class Preprocessing:
 
         Returns
         -------
-        blocks : numpy array
+        blocks : numpy.ndarray
             Framed signal.
+            Shape: (nblocks, block_size)
 
         """
         # step = round((100 - overlap) / 100.0 * block_size)
@@ -36,8 +37,8 @@ class Preprocessing:
         length = audio_info.signal.size
         nblocks = length // step + 1
         blocks = np.zeros((nblocks, block_size))
-        for i in range(nblocks-1):
-            blocks[i] = audio_info.signal[i*step : i*step + block_size]
+        for i in range(nblocks - 1):
+            blocks[i] = audio_info.signal[i * step : i * step + block_size]
         if length % step != 0:
             remaining_samples = length % step
             last_block = np.pad(
@@ -63,8 +64,9 @@ class Preprocessing:
 
         Returns
         -------
-        windowed_blocks : numpy array
+        windowed_blocks : numpy.ndarray
             Windowed signal frames.
+            Shape: (nblocks, block_size)
 
         """
         w = get_window(window=window_type, Nx=len(blocks[0]))
@@ -83,10 +85,10 @@ class Preprocessing:
 
         Returns
         -------
-        dft_blocks : numpy array
+        dft_blocks : numpy.ndarray
             FFT blocks.
+            Shape: (nblocks, block_size)
 
         """
         dft_blocks = np.apply_along_axis(scifft, 1, windowed_blocks)
         return dft_blocks
-        

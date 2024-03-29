@@ -4,7 +4,7 @@ from scipy.signal.windows import triang
 
 class Filterbank:
     """
-    Provides ... TODO
+    Provides a structured set of methods allowing creation of different filterbanks.
 
     """
 
@@ -22,7 +22,14 @@ class Filterbank:
         Parameters
         ----------
         params : list
+            Parameters needed for the creation of mel filterbank include:
             sample_rate, block_size, nmel_bands
+
+        Returns
+        -------
+        mel_filterbank : numpy.ndarray
+            Mel filterbank
+            Shape: (nmel_bands, block_size // 2 + 1)
 
         """
         # asserts TODO
