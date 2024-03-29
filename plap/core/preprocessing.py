@@ -92,3 +92,47 @@ class Preprocessing:
         """
         dft_blocks = np.apply_along_axis(scifft, 1, windowed_blocks)
         return dft_blocks
+    
+    @staticmethod
+    def preprocess(audio_info: AudioInfo, framing: bool, windowing: bool, fft: bool, params: list):
+        """
+        Performs desired preprocessing on signal.
+        params should contain necessary parameters.
+        Framing:
+            params[0] - block size
+            params[1] - overlapping rate
+        Windowing:
+            params[2] - window type
+
+        Parameters
+        ----------
+        audio_info : AudioInfo
+            The input audio_info object.
+        framing: bool
+            Set to True to apply framing to the input signal.
+        windowing: bool
+            Set to True to apply framing and windowing to the input signal.
+        fft: bool
+            Set to True to apply framing, windowing and FFT to the input signal.
+        params : list
+            params[0] - block size
+            params[1] - overlapping rate
+            params[2] - window type (necessary when windowing set to True)
+
+        Returns
+        -------
+        result : numpy.ndarray
+            Preprocessed signal (frames).
+            
+        """
+        if framing:
+            block_size = params[0]
+            overlap = params[1]
+            result = Preprocessing.framing(audio_info=audio_info, block_size=block_size, overlap=overlap)
+        if windowing:
+            window_type = params[2]
+            result = Preprocessing.windowing(blocks=result, window_type=window_type)
+        if fft:
+            result = Preprocessing.fft(windowed_blocks=result)
+
+        return result

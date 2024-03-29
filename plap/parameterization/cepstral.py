@@ -122,15 +122,15 @@ class Cepstral:
             Shape: (nblocks, block_size)
 
         """
-        blocks = Preprocessing.framing(
+        dft_blocks = Preprocessing.preprocess(
             audio_info=self._audio_info,
-            block_size=self._block_size,
-            overlap=self._overlap,
-        )
-        windowed_blocks = Preprocessing.windowing(
-            blocks=blocks, window_type=self._window_type
-        )
-        dft_blocks = Preprocessing.fft(windowed_blocks=windowed_blocks)
+            framing=True,
+            windowing=True,
+            fft=True,
+            params=[
+                self._block_size,
+                self._overlap,
+                self._window_type])
         return dft_blocks
 
     def __create_filterbank(self, params: list) -> np.ndarray:
