@@ -10,13 +10,13 @@ def amplitude_envelope(audio_signal, sample_rate, block_size, overlap):
     current_max = 0
 
     for i in range(len(audio_signal)):
-        # Update the current max if the current sample is greater
+      
         if audio_signal[i] > current_max:
             current_max = audio_signal[i]
-        # Decay the current max based on the step
+      
         elif i % step == 0:
             current_max *= (
-                0.99  # Slight decay to allow the envelope to follow the signal down
+                0.99 
             )
 
         envelope[i] = current_max
@@ -24,12 +24,10 @@ def amplitude_envelope(audio_signal, sample_rate, block_size, overlap):
     return envelope
 
 
-def rms(frames):
-    rms_values = []
-    for frame in frames:
-        rms_value = np.sqrt(np.mean(np.square(frame)))
-        rms_values.append(rms_value)
-    return np.array(rms_values)
+def rms(frames: np.ndarray) -> np.ndarray:
+    
+    rms_values = np.sqrt(np.mean(np.square(frames), axis=1))
+    return rms_values
 
 
 def zero_crossing_rate(frames):
