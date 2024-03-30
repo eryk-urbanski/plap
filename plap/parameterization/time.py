@@ -5,7 +5,7 @@ def amplitude_envelope(audio_signal, sample_rate, block_size, overlap):
     frame_length_samples = int(block_size * sample_rate)
     step = round((100 - overlap) / 100 * frame_length_samples)
 
-    # Initialize the envelope
+
     envelope = np.zeros_like(audio_signal)
     current_max = 0
 
@@ -30,7 +30,7 @@ def rms(frames: np.ndarray) -> np.ndarray:
     return rms_values
 
 
-def zero_crossing_rate(frames):
+def zero_crossing_rate(frames: np.ndarray) -> np.ndarray:
     zcr_values = []
     for frame in frames:
         zcr = np.sum(np.abs(np.diff(np.sign(frame))) / 2)
