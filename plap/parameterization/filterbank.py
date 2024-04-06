@@ -1,11 +1,5 @@
 import numpy as np
-import spafe.fbanks.gammatone_fbanks
 from scipy.signal.windows import triang
-from scipy.signal import lfilter
-from spafe.fbanks.gammatone_fbanks import generate_center_frequencies
-
-
-
 
 class Filterbank:
     """
@@ -65,21 +59,26 @@ class Filterbank:
 
 
     @staticmethod
-    def __gammatone_filterbank(sample_rate, num_filters, f_min, f_max,order =4):
-        # Constants for Gammatone filters
-        EarQ = 9.26449
-        minBW = 24.7
+    def __gammatone_filterbank(sample_rate, num_filters, f_min, order=4):
 
 
-        # Generating center frequencies for the filters
-        cf = generate_center_frequencies(f_min, f_max, num_filters)
+        f_max = sample_rate / 2
+
+        # Generating center frequencies for the filters using ERB formula
+        def erb(f):
+            return 21.4 * np.log10(0.00437 * f + 1)
+        # formula by Glasberg & Moore
+        erb_min = erb(f_min)
+        erb_max = erb(f_max)
+        erb_values = np.linspace(erb_min, erb_max, num_filters)
+        cf = (10 ** (erb_values / 21.4) - 1) / 0.00437
 
         filterbank = np.zeros((num_filters, int(sample_rate / 2 + 1)))
 
         for i in range(num_filters):
             f_center = cf[i]
-            # Calculate bandwidth
-            b = 1.019 * 24.7 * (4.37 * f_center / 1000 + 1)
+            # Calculate bandwidth using ERB formula
+            b = 1.019 * erb(f_center)
 
             # Creating filter impulse
             t = np.arange(0, int(sample_rate / 2 + 1)) / sample_rate
@@ -89,4 +88,4 @@ class Filterbank:
             filter_response = np.abs(np.fft.rfft(impulse_response))
             filterbank[i, :] = filter_response / np.max(filter_response)  # Normalization
 
-        return filterbank, cf
+        return filterbank
