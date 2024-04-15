@@ -1,4 +1,3 @@
-from scipy.fft import fft as scifft
 from scipy.signal.windows import get_window
 from scipy.signal import lfilter
 import numpy as np
