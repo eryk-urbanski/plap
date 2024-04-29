@@ -16,7 +16,8 @@ class Preprocessor:
         preemphasis_coeff: int = 0.68,
         block_size: int = 512,
         overlap: int = 50,
-        window_type: str = "hann",
+        window_type: str = "hann" "kaiser",
+        kaiser_beta: float = 14.0
     ) -> None:
         """
         Preprocessor class instances are created to hold the various
@@ -39,6 +40,7 @@ class Preprocessor:
                 default value = 0.68
 
         """
+        self._kaiser_beta = kaiser_beta
         self._preemphasis_coeff = preemphasis_coeff
         self._block_size = block_size
         self._step = int((100 - overlap) / 100 * block_size)
@@ -141,7 +143,10 @@ class Preprocessor:
             Shape: (nblocks, block_size)
 
         """
-        w = get_window(window=self._window_type, Nx=self._block_size)
+        if self._window_type == 'kaiser':
+            w = get_window(window=(self._window_type, self._kaiser_beta), Nx=self._block_size)
+        else:
+            w = get_window(window=self._window_type, Nx=self._block_size)
         windowed_blocks = np.multiply(blocks[:], w)
         return windowed_blocks
 
