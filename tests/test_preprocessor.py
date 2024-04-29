@@ -17,6 +17,7 @@ from plap.core.preprocessor import Preprocessor
     expected_spectrumsize",
     [
         ("data/redhot.wav", 512, 50, "hann", 0.68, 22050, 2583, 257),
+        ("data/redhot.wav", 512, 50, "kaiser", 0.68, 22050, 2583, 257),
     ],
 )
 def test_preprocess(
@@ -29,7 +30,13 @@ def test_preprocess(
     expected_nblocks,
     expected_spectrumsize,
 ):
-    preprocessor = Preprocessor(preemphasis_coeff, block_size, overlap, window_type)
+    preprocessor = None
+    if window_type == "hann":
+        preprocessor = Preprocessor(preemphasis_coeff, block_size, overlap, window_type)
+    elif window_type == "kaiser":
+        # Here you can define parameters for the Kaiser window, e.g., beta
+        preprocessor = Preprocessor(preemphasis_coeff, block_size, overlap, window_type, 14)
+
     sample_rate, windowed_blocks, dft_blocks = preprocessor.preprocess(path)
     assert sample_rate == expected_sr
     assert windowed_blocks.shape[0] == expected_nblocks
