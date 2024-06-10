@@ -71,7 +71,7 @@ class Preprocessor:
         blocks = self.__framing(signal)
         windowed_blocks = self.__windowing(blocks)
         dft_blocks = self.__fft(windowed_blocks)
-        return sample_rate, windowed_blocks, dft_blocks
+        return signal, sample_rate, windowed_blocks, dft_blocks
 
     def __preemphasis(self, signal: np.ndarray) -> np.ndarray:
         """
@@ -162,5 +162,5 @@ class Preprocessor:
             Shape: (nblocks, block_size // 2 + 1)
 
         """
-        dft_blocks = np.apply_along_axis(np.fft.rfft, 1, windowed_blocks)
+        dft_blocks = np.apply_along_axis(np.fft.fft, 1, windowed_blocks)
         return dft_blocks
