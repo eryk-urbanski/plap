@@ -25,23 +25,33 @@ class FeatureVector:
     This would work by setting the default additional parameters for mfcc. NOT YET
     """
 
-    SUPPORTED_CEPSTRAL_FEATURES = {
-        "gfcc": [],
-        "mfcc": [],
-        }
+    # SUPPORTED_CEPSTRAL_FEATURES = {
+    #     "gfcc": [],
+    #     "mfcc": [],
+    #     }
     
-    SUPPORTED_TIMEDOMAIN_FEATURES = {
-        "rms": None,
-        "zcr": None,
-        }
+    # SUPPORTED_TIMEDOMAIN_FEATURES = {
+    #     "rms": None,
+    #     "zcr": None,
+    #     }
     
     SUPPORTED_MPEG7_FEATURES = {
+        # Basic Spectral
+        "ASF": None,
+        "ASC": None,
+        "ASS": None,
+        # Signal Parameters
+        "AFF": None,
+        # Timbral Temporal
+        "LAT": None,
+        "TC": None,
+        # Timbral Spectral
         "SC": None,
     }
 
     SUPPORTED_FEATURES = {
-        **SUPPORTED_TIMEDOMAIN_FEATURES,
-        **SUPPORTED_CEPSTRAL_FEATURES,
+        # **SUPPORTED_TIMEDOMAIN_FEATURES,
+        # **SUPPORTED_CEPSTRAL_FEATURES,
         **SUPPORTED_MPEG7_FEATURES
         }
 
