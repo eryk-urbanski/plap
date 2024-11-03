@@ -39,6 +39,7 @@ class Parameterizer:
             "LAT": self.mpeg7.lat(),
             "TC": self.mpeg7.tc(),
             "SC": np.mean(self.mpeg7.sc()),
+            "HSC": self.mpeg7.hsc(),
             "AFF": np.mean(self.mpeg7.aff()),
             "ASC": np.mean(self.mpeg7.asc()),
             "ASS": np.mean(self.mpeg7.ass()),

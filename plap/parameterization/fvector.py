@@ -47,6 +47,7 @@ class FeatureVector:
         "TC": None,
         # Timbral Spectral
         "SC": None,
+        "HSC": None,
     }
 
     SUPPORTED_FEATURES = {

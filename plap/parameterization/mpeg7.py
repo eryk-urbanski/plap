@@ -11,28 +11,28 @@ class MPEG7:
     ## List of descriptors
     #------------------------------------------
     # Basic
-    #  - Audio Waveform Descriptor AW n
-    #  - Audio Power Descriptor AP n
+    #  - Audio Waveform Descriptor AW TODO PORT
+    #  - Audio Power Descriptor AP TODO PORT
     # Basic Spectral
-    #  - Audio Spectrum Envelope Descriptor ASE
-    #  - Audio Spectrum Centroid Descriptor ASC n
-    #  - Audio Spectrum Spread Descriptor ASS b
-    #  - Audio Spectrum Flatness Descriptor ASF
+    #  - Audio Spectrum Envelope Descriptor ASE TODO PORT
+    #  - Audio Spectrum Centroid Descriptor ASC DONE PORT TODO COMPARISON
+    #  - Audio Spectrum Spread Descriptor ASS DONE PORT TODO COMPARISON
+    #  - Audio Spectrum Flatness Descriptor ASF DONE LIBROSA TODO COMPARISON
     # Signal Parameters
-    #  - Audio Fundamental Frequency Descriptor AFF
-    #  - Audio Harmonicity Descriptor AH n
+    #  - Audio Fundamental Frequency Descriptor AFF DONE PORT TODO COMPARISON
+    #  - Audio Harmonicity Descriptor AH TODO PORT
     # Timbral Temporal
-    #  - Log Attack Time Descriptor LAT
-    #  - Temporal Centroid Descriptor TC
+    #  - Log Attack Time Descriptor LAT DONE PORT TODO COMPARISON
+    #  - Temporal Centroid Descriptor TC DONE PORT TODO COMPARISON
     # Timbral Spectral
-    #  - Spectral Centroid Descriptor SC
-    #  - Harmonic Spectral Centroid Descriptor HSC
-    #  - Harmonic Spectral Deviation Descriptor HSD
-    #  - Harmonic Spectral Spread Descriptor HSS
-    #  - Harmonic Spectral Variation Descriptor HSV
+    #  - Spectral Centroid Descriptor SC DONE LIBROSA TODO COMPARISON
+    #  - Harmonic Spectral Centroid Descriptor HSC TODO PORT
+    #  - Harmonic Spectral Deviation Descriptor HSD TODO PORT
+    #  - Harmonic Spectral Spread Descriptor HSS TODO PORT
+    #  - Harmonic Spectral Variation Descriptor HSV TODO PORT
     # Spectral Basic
-    #  - Audio Spectrum Basis Descriptor ASB
-    #  - Audio Spectrum Projection Descriptor ASP
+    #  - Audio Spectrum Basis Descriptor ASB TODO PORT
+    #  - Audio Spectrum Projection Descriptor ASP TODO PORT
     # Silence Descriptor SD
     #------------------------------------------
 
@@ -54,6 +54,16 @@ class MPEG7:
         self.window_size = standvar["window_size"]
         self.fft_size = standvar["fft_size"]
         self.window = standvar["window"]
+
+        # Additional fields needed for Timbral Spectral descriptors
+        self.time_f0 = None
+        self.f0_bp = None
+        self.pos_f0 = None
+        self.mf0_hz = None
+        self.nbt0 = 8
+        self.overlap_factor = 2
+        self.L_sec = None
+        self.X_m = None # STFT
 
     # ------------------
     # | Basic Spectral |
@@ -140,7 +150,11 @@ class MPEG7:
 
         mag = np.max(phi)
         index = np.argmax(phi) + Kl
+        self.time_f0 = (np.arange(1, num_frames + 1) * self.hop_size) / self.sample_rate
         f0[frame + 1:num_frames] = self.sample_rate / index
+        self.f0_bp = np.column_stack((self.time_f0, f0))
+        self.pos_f0 = np.where(self.f0_bp[:, 1] > 10)[0]
+        self.mf0_hz = np.median(self.f0_bp[self.pos_f0, 1])
 
         return f0
 
@@ -206,6 +220,14 @@ class MPEG7:
             y=self.audio_data, sr=self.sample_rate, n_fft=self.config["n_fft"], hop_length=self.config["hop_length"]
         )
         return spectral_centroid
+    
+    # Harmonic Spectral Centroid HSC
+    def hsc(self):
+        harmonic_spectral_centroid = 0
+        if self.X_m is None:
+            self._h_spectre()
+        X_m = self.X_m
+        return harmonic_spectral_centroid
     
 
     # ------------------
@@ -437,3 +459,44 @@ class MPEG7:
     def _specgram2():
         # todo port from matlab
         pass
+
+    def _h_spectre(self):
+        if self.mf0_hz is None:
+            self.aff()
+        L_sec = self.nbt0 / self.mf0_hz
+        sr_hz = self.sample_rate
+        data_v = self.audio_data
+        overlap_factor = self.overlap_factor
+        windowTYPE = self.window
+
+        L_n = round(L_sec * sr_hz) + 1
+        L_n = L_n + (L_n % 2 == 0)  # Ensuring L_n is odd
+        LD_n = (L_n - 1) // 2
+        N = 2 * 2 ** int(np.ceil(np.log2(L_n)))  # Next power of 2
+        STEP_n = round(L_n / overlap_factor)
+
+        window_v = hamming(L_n)
+        normalisation = sum(window_v)
+
+        mark_n_v = np.arange(1 + LD_n, len(data_v) - LD_n, STEP_n)
+        nb_analyses = len(mark_n_v)
+        
+        X_m = np.zeros((N // 2 + 1, len(mark_n_v)))  # Initialize X_m with appropriate shape
+
+        for frame in range(len(mark_n_v)):
+            n = mark_n_v[frame]
+            t = (n - 1) / sr_hz
+            
+            # Extract signal segment and apply mean centering and window
+            signal_v = data_v[n - LD_n:n + LD_n + 1]  # Ensure indexing includes n + LD_n
+            signal_v -= np.mean(signal_v)  # Mean centering
+            signal_v *= window_v  # Apply window function
+            
+            # Perform FFT
+            X_fft_iv = np.fft.fft(signal_v, N) / normalisation
+            ampl_fft_v = np.abs(X_fft_iv[:N // 2])  # Get amplitude spectrum
+            
+            # Store results in X_m
+            X_m[:N // 2 + 1, frame] = [t] + ampl_fft_v.tolist()[:N // 2]  # Combine time and amplitude
+
+        self.X_m = X_m
