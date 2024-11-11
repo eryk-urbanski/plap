@@ -246,8 +246,18 @@ class MPEG7:
             self._h_spectre()
         X_m = self.X_m
         pic_struct = self._h_harmo()
-        harmonic_spectral_centroid, _, _ = self._h_harmoiParam(pic_struct=pic_struct)
+        harmonic_spectral_centroid, _, _, _ = self._h_harmoiParam(pic_struct=pic_struct)
         return harmonic_spectral_centroid
+    
+    # Harmonic Spectral Deviation HSD
+    def hsd(self):
+        harmonic_spectral_deviation = 0
+        if self.X_m is None:
+            self._h_spectre()
+        X_m = self.X_m
+        pic_struct = self._h_harmo()
+        _, harmonic_spectral_deviation, _, _ = self._h_harmoiParam(pic_struct=pic_struct)
+        return harmonic_spectral_deviation
     
     # Harmonic Spectral Spread HSS
     def hss(self):
@@ -256,7 +266,7 @@ class MPEG7:
             self._h_spectre()
         X_m = self.X_m
         pic_struct = self._h_harmo()
-        _, harmonic_spectral_spread, _ = self._h_harmoiParam(pic_struct=pic_struct)
+        _, _, harmonic_spectral_spread, _ = self._h_harmoiParam(pic_struct=pic_struct)
         return harmonic_spectral_spread
     
     # Harmonic Spectral Variation HSV
@@ -266,7 +276,7 @@ class MPEG7:
             self._h_spectre()
         X_m = self.X_m
         pic_struct = self._h_harmo()
-        _, _, harmonic_spectral_variation = self._h_harmoiParam(pic_struct=pic_struct)
+        _, _, _, harmonic_spectral_variation = self._h_harmoiParam(pic_struct=pic_struct)
         return harmonic_spectral_variation
 
     # ------------------
@@ -647,6 +657,10 @@ class MPEG7:
             # ihsc, ihss
             iHarmonicSpectralCentroid[frame], iHarmonicSpectralSpread[frame] = self._ihsc_ihss(freqh_v, amplh_lin_v, H)
 
+            # ihsd
+            SE_lin_v = self._spectral_env(amplh_lin_v=amplh_lin_v)
+            iHarmonicSpectralDeviation[frame] = self._ihsd(np.log(amplh_lin_v), np.log(SE_lin_v), H)
+
             # ihsv
             if frame > 0:
                 # Determine the minimum length between current and previous frame harmonics
@@ -663,9 +677,10 @@ class MPEG7:
         pos_v = np.where(inrg > np.max(inrg) * 0.1)[0]  # `np.where` returns a tuple, so we use [0] to get the indices
         # Calculate the mean of `iHarmonicSpectralCentroid` at the positions found
         self.hsc_d = np.mean(iHarmonicSpectralCentroid[pos_v]) if len(pos_v) > 0 else 0
+        self.hsd_d = np.mean(iHarmonicSpectralDeviation[pos_v]) if len(pos_v) > 0 else 0
         self.hss_d = np.mean(iHarmonicSpectralSpread[pos_v]) if len(pos_v) > 0 else 0
         self.hsv_d = np.mean(iHarmonicSpectralVariation[pos_v]) if len(pos_v) > 0 else 0
-        return self.hsc_d, self.hss_d, self.hsv_d
+        return self.hsc_d, self.hsd_d, self.hss_d, self.hsv_d
 
     def _ihsc_ihss(self, freqh_v, amplh_v, H):
         if len(freqh_v) < H or len(amplh_v) < H:
@@ -701,3 +716,38 @@ class MPEG7:
         HarmonicSpectralVariation = 1 - crossprod / (np.sqrt(autoprod_x1 * autoprod_x2))
 
         return HarmonicSpectralVariation
+
+    def _spectral_env(self, amplh_lin_v):
+        # Ensure the input is a column vector
+        amplh_lin_v = np.asarray(amplh_lin_v).flatten()
+        H = len(amplh_lin_v)
+        SE_lin_v = np.zeros(H)
+        # === Spectral envelope estimation
+        # First element
+        SE_lin_v[0] = (amplh_lin_v[0] + amplh_lin_v[1]) / 2
+
+        # Middle elements
+        for kk in range(1, H - 1):
+            SE_lin_v[kk] = (amplh_lin_v[kk - 1] + amplh_lin_v[kk] + amplh_lin_v[kk + 1]) / 3
+
+        # Last element
+        SE_lin_v[-1] = (amplh_lin_v[-2] + amplh_lin_v[-1]) / 2
+
+        return SE_lin_v
+    
+    def _ihsd(self, amplh_v, SE_v, H):
+        # Check if the length of input vectors is sufficient
+        if len(amplh_v) < H or len(SE_v) < H:
+            raise ValueError("_ihsd: Length of input vectors is less than H")
+
+        # Ensure the input vectors are column vectors
+        amplh_v = np.asarray(amplh_v).flatten()
+        SE_v = np.asarray(SE_v).flatten()
+
+        # Harmonic Spectral Deviation computation
+        harmonic_spectral_deviation = np.sum(np.abs(amplh_v[:H] - SE_v[:H]))
+
+        nb_harmo = H
+        harmonic_spectral_deviation /= nb_harmo
+
+        return harmonic_spectral_deviation

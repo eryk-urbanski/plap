@@ -40,6 +40,7 @@ class Parameterizer:
             "TC": self.mpeg7.tc(),
             "SC": np.mean(self.mpeg7.sc()),
             "HSC": self.mpeg7.hsc(),
+            "HSD": self.mpeg7.hsd(),
             "HSS": self.mpeg7.hss(),
             "HSV": self.mpeg7.hsv(),
             "AFF": np.mean(self.mpeg7.aff()),

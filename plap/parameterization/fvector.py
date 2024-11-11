@@ -48,6 +48,7 @@ class FeatureVector:
         # Timbral Spectral
         "SC": None,
         "HSC": None,
+        "HSD": None,
         "HSS": None,
         "HSV": None,
     }
@@ -63,7 +64,7 @@ class FeatureVector:
         """
         self.features = {}
         self.parse_args(*args)
-        self.values = np.empty()
+        self.values = np.empty([])
 
     def parse_args(self, *args):
         i = 0
