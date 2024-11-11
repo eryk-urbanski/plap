@@ -55,6 +55,8 @@ class Preprocessor:
 
         Returns
         -------
+        signal : numpy.ndarray
+            Raw audio data
         sample_rate : int
             Sample rate (sampling frequency)
         windowed_blocks : numpy.ndarray

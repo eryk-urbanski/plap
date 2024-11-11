@@ -26,10 +26,10 @@ class MPEG7:
     #  - Temporal Centroid Descriptor TC DONE PORT TODO COMPARISON
     # Timbral Spectral
     #  - Spectral Centroid Descriptor SC DONE LIBROSA TODO COMPARISON
-    #  - Harmonic Spectral Centroid Descriptor HSC TODO PORT
+    #  - Harmonic Spectral Centroid Descriptor HSC TODO COMPARISON
     #  - Harmonic Spectral Deviation Descriptor HSD TODO PORT
-    #  - Harmonic Spectral Spread Descriptor HSS TODO PORT
-    #  - Harmonic Spectral Variation Descriptor HSV TODO PORT
+    #  - Harmonic Spectral Spread Descriptor HSS TODO COMPARISON
+    #  - Harmonic Spectral Variation Descriptor HSV TODO COMPARISON
     # Spectral Basic
     #  - Audio Spectrum Basis Descriptor ASB TODO PORT
     #  - Audio Spectrum Projection Descriptor ASP TODO PORT
@@ -64,6 +64,12 @@ class MPEG7:
         self.overlap_factor = 2
         self.L_sec = None
         self.X_m = None # STFT
+        # Harmonic Descriptors
+        self.harmo_called = False
+        self.hsc_d = None
+        self.hsd_d = None
+        self.hss_d = None
+        self.hsv_d = None
 
     # ------------------
     # | Basic Spectral |
@@ -221,14 +227,47 @@ class MPEG7:
         )
         return spectral_centroid
     
+    # Harmonic Spectral Descriptors
+    # -> HSC, HSS
+    def hsdescriptors(self):
+        harmonic_spectral_centroid = 0
+        harmonic_spectral_spread = 0
+        if self.X_m is None:
+            self._h_spectre()
+        X_m = self.X_m
+        pic_struct = self._h_harmo()
+        harmonic_spectral_centroid, harmonic_spectral_spread = self._h_harmoiParam(pic_struct=pic_struct)
+        return harmonic_spectral_centroid, harmonic_spectral_spread
+    
     # Harmonic Spectral Centroid HSC
     def hsc(self):
         harmonic_spectral_centroid = 0
         if self.X_m is None:
             self._h_spectre()
         X_m = self.X_m
+        pic_struct = self._h_harmo()
+        harmonic_spectral_centroid, _, _ = self._h_harmoiParam(pic_struct=pic_struct)
         return harmonic_spectral_centroid
     
+    # Harmonic Spectral Spread HSS
+    def hss(self):
+        harmonic_spectral_spread = 0
+        if self.X_m is None:
+            self._h_spectre()
+        X_m = self.X_m
+        pic_struct = self._h_harmo()
+        _, harmonic_spectral_spread, _ = self._h_harmoiParam(pic_struct=pic_struct)
+        return harmonic_spectral_spread
+    
+    # Harmonic Spectral Variation HSV
+    def hsv(self):
+        harmonic_spectral_variation = 0
+        if self.X_m is None:
+            self._h_spectre()
+        X_m = self.X_m
+        pic_struct = self._h_harmo()
+        _, _, harmonic_spectral_variation = self._h_harmoiParam(pic_struct=pic_struct)
+        return harmonic_spectral_variation
 
     # ------------------
     # | Helper methods |
@@ -500,3 +539,165 @@ class MPEG7:
             X_m[:N // 2 + 1, frame] = [t] + ampl_fft_v.tolist()[:N // 2]  # Combine time and amplitude
 
         self.X_m = X_m
+
+    def _h_harmo(self):
+        crible = 0.1
+        f0_bp = self.f0_bp
+        if self.X_m is None:
+            self._h_spectre()
+        X_m = self.X_m
+        nb_frames = X_m.shape[1]
+        nsams = X_m.shape[0] - 1
+        N = nsams * 2
+
+        pic_struct = []  # Initialize an empty list to store frame data
+
+        for frame in range(nb_frames):
+            sr_hz = self.sample_rate
+            # Extract time and amplitude values for the current frame
+            t = X_m[0, frame]
+            ampl_fft_v = X_m[1:int(N / 2) + 1, frame]
+            
+            # Calculate f0 (fundamental frequency) at time t
+            f0_hz = self._h_evalbp(f0_bp, t)
+            
+            # Calculate the harmonic count H
+            H = round(0.5 * sr_hz / f0_hz)
+            
+            # Get harmonic frequencies and amplitudes
+            freqh_hz_v, amplh_lin_v = self._h_harmopic(H, f0_hz, crible, ampl_fft_v, sr_hz, N)
+            
+            # Store results in pic_struct
+            pic_struct.append({
+                'freqh_v': freqh_hz_v,
+                'amplh_lin_v': amplh_lin_v
+            })
+        
+        return pic_struct
+
+    def _h_evalbp(self, bp, t):
+        # if len(t) != 1:
+        #     raise ValueError("_h_evalbp: length of t is not 1")
+        pos = np.argmin(np.abs(bp[:, 0] - t))
+        taille = bp.shape
+        if (bp[pos, 0] == t) or (taille[0] == 1) or \
+        ((bp[pos, 0] < t) and (pos == taille[0] - 1)) or \
+        ((bp[pos, 0] > t) and (pos == 0)):
+            
+            value = bp[pos, 1]
+
+        elif bp[pos, 0] < t:
+            # Linear interpolation if bp[pos, 0] < t
+            value = (bp[pos + 1, 1] - bp[pos, 1]) / (bp[pos + 1, 0] - bp[pos, 0]) * (t - bp[pos, 0]) + bp[pos, 1]
+
+        elif bp[pos, 0] > t:
+            # Linear interpolation if bp[pos, 0] > t
+            value = (bp[pos, 1] - bp[pos - 1, 1]) / (bp[pos, 0] - bp[pos - 1, 0]) * (t - bp[pos - 1, 0]) + bp[pos - 1, 1]
+
+        return value
+    
+    def _h_harmopic(self, H, f0_hz, c, am_fft_v, sr_hz, N):
+        harmo_hz_v = np.arange(1, H + 1) * f0_hz  # Create harmonic frequencies
+        freqh_hz_v = np.zeros(H)                  # Initialize frequency array
+        amplh_lin_v = np.zeros(H)                 # Initialize amplitude array
+
+        for h in range(H):
+            # Define the frequency zone for the current harmonic
+            zone_hz = np.arange(max(0, harmo_hz_v[h] - c * f0_hz),
+                                min(harmo_hz_v[h] + c * f0_hz, sr_hz / 2 - sr_hz / N), sr_hz / N)
+            
+            # Convert the frequency zone to sample indices
+            zone_k = np.round(zone_hz / sr_hz * N).astype(int)
+            
+            if len(zone_k) > 0:
+                # Find the maximum amplitude within this zone
+                max_value = np.max(am_fft_v[zone_k])
+                max_pos = zone_k[np.argmax(am_fft_v[zone_k])]
+                
+                # Store the frequency and amplitude
+                freqh_hz_v[h] = (max_pos - 1) / N * sr_hz
+                amplh_lin_v[h] = max_value
+
+        # Filter out zero entries in freqh_hz_v to get the actual number of harmonics found
+        pos_v = np.where(freqh_hz_v > 0)[0]
+        H = pos_v[-1] + 1 if len(pos_v) > 0 else 0
+        freqh_hz_v = freqh_hz_v[:H]
+        amplh_lin_v = amplh_lin_v[:H]
+
+        return freqh_hz_v, amplh_lin_v
+
+    def _h_harmoiParam(self, pic_struct):
+        self.harmo_called = True
+        nb_frames = len(pic_struct)
+        inrg = np.zeros(nb_frames)
+        iHarmonicSpectralCentroid = np.zeros(nb_frames)
+        iHarmonicSpectralDeviation = np.zeros(nb_frames)
+        iHarmonicSpectralSpread = np.zeros(nb_frames)
+        iHarmonicSpectralVariation = np.zeros(nb_frames)
+
+        # Instantaneous values
+        for frame in range(nb_frames):
+            freqh_v = pic_struct[frame]['freqh_v']
+            amplh_lin_v = pic_struct[frame]['amplh_lin_v']
+            H = len(freqh_v)
+            
+            # inrg
+            inrg[frame] = np.sqrt(np.sum(amplh_lin_v[:H] ** 2))
+            
+            # ihsc, ihss
+            iHarmonicSpectralCentroid[frame], iHarmonicSpectralSpread[frame] = self._ihsc_ihss(freqh_v, amplh_lin_v, H)
+
+            # ihsv
+            if frame > 0:
+                # Determine the minimum length between current and previous frame harmonics
+                minH = min(H_old, H)
+                iHarmonicSpectralVariation[frame] = self._ihsv(
+                    amplh_lin_v_old[:minH], amplh_lin_v[:minH], minH
+                )
+
+            amplh_lin_v_old = amplh_lin_v
+            H_old = H
+
+
+        # Find positions where `inrg` is greater than 10% of its maximum value
+        pos_v = np.where(inrg > np.max(inrg) * 0.1)[0]  # `np.where` returns a tuple, so we use [0] to get the indices
+        # Calculate the mean of `iHarmonicSpectralCentroid` at the positions found
+        self.hsc_d = np.mean(iHarmonicSpectralCentroid[pos_v]) if len(pos_v) > 0 else 0
+        self.hss_d = np.mean(iHarmonicSpectralSpread[pos_v]) if len(pos_v) > 0 else 0
+        self.hsv_d = np.mean(iHarmonicSpectralVariation[pos_v]) if len(pos_v) > 0 else 0
+        return self.hsc_d, self.hss_d, self.hsv_d
+
+    def _ihsc_ihss(self, freqh_v, amplh_v, H):
+        if len(freqh_v) < H or len(amplh_v) < H:
+            raise ValueError("_hsc")
+        # Ensure freqh_v and amplh_v are column vectors
+        freqh_v = np.reshape(freqh_v, (-1, 1))
+        amplh_v = np.reshape(amplh_v, (-1, 1))
+
+        # ihsc computing
+        num = np.sum(freqh_v[:H] * amplh_v[:H])
+        denum = np.sum(amplh_v[:H])
+        HarmonicSpectralCentroid = num / denum if denum != 0 else 0
+
+        # ihss computing
+        num = np.sum((amplh_v[:H] * (freqh_v[:H] - HarmonicSpectralCentroid))**2)
+        denum = np.sum(amplh_v[:H]**2)
+        HarmonicSpectralSpread = (1 / HarmonicSpectralCentroid) * np.sqrt(num / denum) if HarmonicSpectralCentroid != 0 else 0
+
+        return HarmonicSpectralCentroid, HarmonicSpectralSpread
+
+    def _ihsv(self, x1_v, x2_v, H):
+        # Error check equivalent: ensuring both vectors are at least of length H
+        if len(x1_v) < H or len(x2_v) < H:
+            raise ValueError("_ihsv: Length of vectors is less than H")
+        # Calculate the cross product of the vectors
+        crossprod = np.sum(x1_v[:H] * x2_v[:H])
+
+        # Calculate the auto-products of each vector
+        autoprod_x1 = np.sum(x1_v[:H] ** 2)
+        autoprod_x2 = np.sum(x2_v[:H] ** 2)
+
+        # Compute the Harmonic Spectral Variation
+        HarmonicSpectralVariation = 1 - crossprod / (np.sqrt(autoprod_x1 * autoprod_x2))
+
+        return HarmonicSpectralVariation
