@@ -59,21 +59,21 @@ class Preprocessor:
             Raw audio data
         sample_rate : int
             Sample rate (sampling frequency)
-        windowed_blocks : numpy.ndarray
-            Windowed signal frames
-            Shape: (nblocks, block_size)
-        dft_blocks : numpy.ndarray
-            FFT blocks (specra)
-            Shape: (nblocks, block_size // 2 + 1)
+        # windowed_blocks : numpy.ndarray
+        #     Windowed signal frames
+        #     Shape: (nblocks, block_size)
+        # dft_blocks : numpy.ndarray
+        #     FFT blocks (specra)
+        #     Shape: (nblocks, block_size // 2 + 1)
 
         """
         signal, sample_rate = sf.read(audio_path)
         if self._preemphasis_coeff is not None:
             signal = self.__preemphasis(signal)
-        blocks = self.__framing(signal)
-        windowed_blocks = self.__windowing(blocks)
-        dft_blocks = self.__fft(windowed_blocks)
-        return signal, sample_rate, windowed_blocks, dft_blocks
+        # blocks = self.__framing(signal)
+        # windowed_blocks = self.__windowing(blocks)
+        # dft_blocks = self.__fft(windowed_blocks)
+        return signal, sample_rate#, windowed_blocks, dft_blocks
 
     def __preemphasis(self, signal: np.ndarray) -> np.ndarray:
         """

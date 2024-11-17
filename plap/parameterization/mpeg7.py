@@ -27,7 +27,7 @@ class MPEG7:
     # Timbral Spectral
     #  - Spectral Centroid Descriptor SC DONE LIBROSA TODO COMPARISON
     #  - Harmonic Spectral Centroid Descriptor HSC TODO COMPARISON
-    #  - Harmonic Spectral Deviation Descriptor HSD TODO PORT
+    #  - Harmonic Spectral Deviation Descriptor HSD TODO COMPARISON
     #  - Harmonic Spectral Spread Descriptor HSS TODO COMPARISON
     #  - Harmonic Spectral Variation Descriptor HSV TODO COMPARISON
     # Spectral Basic
@@ -59,11 +59,13 @@ class MPEG7:
         self.time_f0 = None
         self.f0_bp = None
         self.pos_f0 = None
+        self.aff_d = None
         self.mf0_hz = None
         self.nbt0 = 8
         self.overlap_factor = 2
         self.L_sec = None
         self.X_m = None # STFT
+        self.pic_struct = None
         # Harmonic Descriptors
         self.harmo_called = False
         self.hsc_d = None
@@ -110,6 +112,9 @@ class MPEG7:
 
     def aff(self) -> np.ndarray:
 
+        if self.aff_d is not None:
+            return self.aff_d
+
         Km = int(np.ceil(self.sample_rate / self.config['low_freq']))  # maximum lag
         Kl = self.sample_rate // self.config['high_freq']   # minimum lag
         hop_size = self.hop_size
@@ -131,7 +136,8 @@ class MPEG7:
             # Normalized Cross-Correlation
                 den = den - self.audio_data[m - k + n - 1] ** 2 + self.audio_data[m - k] ** 2
                 num = np.sum(self.audio_data[m:m + n] * self.audio_data[m - k:m - k + n])
-                phi[k - Kl] = num / (np.sqrt(den1 * den) + np.finfo(float).eps)
+                temp = np.sqrt(den1 * den) if den1 * den >= 0 else 0
+                phi[k - Kl] = num / (temp + np.finfo(float).eps)
 
             mag = np.max(phi)
             index = np.argmax(phi > 0.97 * mag) + Kl
@@ -162,6 +168,7 @@ class MPEG7:
         self.pos_f0 = np.where(self.f0_bp[:, 1] > 10)[0]
         self.mf0_hz = np.median(self.f0_bp[self.pos_f0, 1])
 
+        self.aff_d = f0
         return f0
 
     # --------------------
@@ -234,7 +241,6 @@ class MPEG7:
         harmonic_spectral_spread = 0
         if self.X_m is None:
             self._h_spectre()
-        X_m = self.X_m
         pic_struct = self._h_harmo()
         harmonic_spectral_centroid, harmonic_spectral_spread = self._h_harmoiParam(pic_struct=pic_struct)
         return harmonic_spectral_centroid, harmonic_spectral_spread
@@ -244,9 +250,13 @@ class MPEG7:
         harmonic_spectral_centroid = 0
         if self.X_m is None:
             self._h_spectre()
-        X_m = self.X_m
-        pic_struct = self._h_harmo()
-        harmonic_spectral_centroid, _, _, _ = self._h_harmoiParam(pic_struct=pic_struct)
+        if self.pic_struct is None:
+            self._h_harmo()
+        pic_struct = self.pic_struct
+        if self.hsc_d is None:
+            harmonic_spectral_centroid, _, _, _ = self._h_harmoiParam(pic_struct=pic_struct)
+        else:
+            harmonic_spectral_centroid = self.hsc_d
         return harmonic_spectral_centroid
     
     # Harmonic Spectral Deviation HSD
@@ -254,9 +264,13 @@ class MPEG7:
         harmonic_spectral_deviation = 0
         if self.X_m is None:
             self._h_spectre()
-        X_m = self.X_m
-        pic_struct = self._h_harmo()
-        _, harmonic_spectral_deviation, _, _ = self._h_harmoiParam(pic_struct=pic_struct)
+        if self.pic_struct is None:
+            self._h_harmo()
+        pic_struct = self.pic_struct
+        if self.hsd_d is None:
+            _, harmonic_spectral_deviation, _, _ = self._h_harmoiParam(pic_struct=pic_struct)
+        else:
+            harmonic_spectral_deviation = self.hsd_d
         return harmonic_spectral_deviation
     
     # Harmonic Spectral Spread HSS
@@ -264,9 +278,13 @@ class MPEG7:
         harmonic_spectral_spread = 0
         if self.X_m is None:
             self._h_spectre()
-        X_m = self.X_m
-        pic_struct = self._h_harmo()
-        _, _, harmonic_spectral_spread, _ = self._h_harmoiParam(pic_struct=pic_struct)
+        if self.pic_struct is None:
+            self._h_harmo()
+        pic_struct = self.pic_struct
+        if self.hss_d is None:
+            _, _, harmonic_spectral_spread, _ = self._h_harmoiParam(pic_struct=pic_struct)
+        else:
+            harmonic_spectral_spread = self.hss_d
         return harmonic_spectral_spread
     
     # Harmonic Spectral Variation HSV
@@ -274,9 +292,13 @@ class MPEG7:
         harmonic_spectral_variation = 0
         if self.X_m is None:
             self._h_spectre()
-        X_m = self.X_m
-        pic_struct = self._h_harmo()
-        _, _, _, harmonic_spectral_variation = self._h_harmoiParam(pic_struct=pic_struct)
+        if self.pic_struct is None:
+            self._h_harmo()
+        pic_struct = self.pic_struct
+        if self.hsv_d is None:
+            _, _, _, harmonic_spectral_variation = self._h_harmoiParam(pic_struct=pic_struct)
+        else:
+            harmonic_spectral_variation = self.hsv_d
         return harmonic_spectral_variation
 
     # ------------------
@@ -583,7 +605,7 @@ class MPEG7:
                 'amplh_lin_v': amplh_lin_v
             })
         
-        return pic_struct
+        self.pic_struct = pic_struct
 
     def _h_evalbp(self, bp, t):
         # if len(t) != 1:
@@ -659,7 +681,7 @@ class MPEG7:
 
             # ihsd
             SE_lin_v = self._spectral_env(amplh_lin_v=amplh_lin_v)
-            iHarmonicSpectralDeviation[frame] = self._ihsd(np.log(amplh_lin_v), np.log(SE_lin_v), H)
+            iHarmonicSpectralDeviation[frame] = self._ihsd(np.log(np.clip(amplh_lin_v, np.finfo(float).eps, None)), np.log(np.clip(SE_lin_v, np.finfo(float).eps, None)), H)
 
             # ihsv
             if frame > 0:
@@ -692,12 +714,15 @@ class MPEG7:
         # ihsc computing
         num = np.sum(freqh_v[:H] * amplh_v[:H])
         denum = np.sum(amplh_v[:H])
-        HarmonicSpectralCentroid = num / denum if denum != 0 else 0
+        denum = denum + np.finfo(float).eps if denum == 0 else denum
+        HarmonicSpectralCentroid = num / denum
 
         # ihss computing
         num = np.sum((amplh_v[:H] * (freqh_v[:H] - HarmonicSpectralCentroid))**2)
         denum = np.sum(amplh_v[:H]**2)
-        HarmonicSpectralSpread = (1 / HarmonicSpectralCentroid) * np.sqrt(num / denum) if HarmonicSpectralCentroid != 0 else 0
+        denum = denum + np.finfo(float).eps if denum == 0 else denum
+        hsc_temp = HarmonicSpectralCentroid + np.finfo(float).eps if HarmonicSpectralCentroid == 0 else HarmonicSpectralCentroid
+        HarmonicSpectralSpread = (1 / hsc_temp) * np.sqrt(num / denum)
 
         return HarmonicSpectralCentroid, HarmonicSpectralSpread
 
@@ -713,7 +738,9 @@ class MPEG7:
         autoprod_x2 = np.sum(x2_v[:H] ** 2)
 
         # Compute the Harmonic Spectral Variation
-        HarmonicSpectralVariation = 1 - crossprod / (np.sqrt(autoprod_x1 * autoprod_x2))
+        temp = autoprod_x2 * autoprod_x1 
+        temp = 0 if temp < 0 else temp
+        HarmonicSpectralVariation = 1 - crossprod / (np.sqrt(temp))
 
         return HarmonicSpectralVariation
 

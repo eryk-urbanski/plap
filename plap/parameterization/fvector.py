@@ -70,8 +70,12 @@ class FeatureVector:
         i = 0
         while i < len(args):
             feature = args[i]
-            if not isinstance(feature, str) or feature not in self.SUPPORTED_FEATURES:
+            if not isinstance(feature, str):
                 raise ValueError(f"Invalid feature: {feature}")
+            else:
+                feature = feature.upper()
+                if feature not in self.SUPPORTED_FEATURES:
+                    raise ValueError(f"Invalid feature: {feature}")
             if self.SUPPORTED_FEATURES[feature] is not None:
                 if i + 1 >= len(args) or not isinstance(args[i + 1], list):
                     raise ValueError(f"Missing or invalid parameters for '{feature}' feature")
