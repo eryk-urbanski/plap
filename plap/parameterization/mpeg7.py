@@ -136,8 +136,8 @@ class MPEG7:
             # Normalized Cross-Correlation
                 den = den - self.audio_data[m - k + n - 1] ** 2 + self.audio_data[m - k] ** 2
                 num = np.sum(self.audio_data[m:m + n] * self.audio_data[m - k:m - k + n])
-                temp = np.sqrt(den1 * den) if den1 * den >= 0 else 0
-                phi[k - Kl] = num / (temp + np.finfo(float).eps)
+                temp = np.sqrt(np.clip(den1 * den, 0, None))
+                phi[k - Kl] = num / temp
 
             mag = np.max(phi)
             index = np.argmax(phi > 0.97 * mag) + Kl
@@ -492,8 +492,8 @@ class MPEG7:
         # print("pad: " + str(pad))
 
         # Pad the data with zeros if necessary
-        if pad > 0:
-            data = np.concatenate([audio_data, np.zeros(int(pad))])
+        # if pad > 0:
+        #     data = np.concatenate([audio_data, np.zeros(int(pad))])
         # print("data[200:210]: " + str(data[200:211]))
 
         w = None
