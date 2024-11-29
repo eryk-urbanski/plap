@@ -1,0 +1,2 @@
+class DimReductor:
+    pass

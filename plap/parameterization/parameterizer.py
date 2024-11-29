@@ -13,7 +13,7 @@ class Parameterizer:
     ) -> None:     
         self.preprocessor = preprocessor
         # self.signal, self.sample_rate, self.windowed_blocks, self.dft_blocks = preprocessor.preprocess(audio_path)
-        self.signal, self.sample_rate = preprocessor.preprocess(audio_path)
+        self.signal, self.sample_rate, _, _ = preprocessor.preprocess(audio_path)
         self.mpeg7 = MPEG7(self.signal, self.sample_rate)
 
     @staticmethod

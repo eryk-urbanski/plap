@@ -1,13 +1,14 @@
-from scipy.signal.windows import get_window
-from scipy.signal import lfilter
-import numpy as np
-import soundfile as sf
 from typing import Tuple
+
+import soundfile as sf
+import numpy as np
+from scipy.signal import lfilter
+import librosa
 
 
 class Preprocessor:
     """
-    A class aggregating methods for signal framing, windowing and fft.
+    A class aggregating methods for signal pre-emphasis and fft.
 
     """
 
@@ -34,7 +35,7 @@ class Preprocessor:
             Name of the window type
                 default value = "hann"
         preemhpasis_coeff : int
-            Pre-emphasis coefficient.
+            Pre-emphasis coefficient
             If set to None, pre-emphasis is not performed
                 default value = 0.68
 
@@ -44,7 +45,7 @@ class Preprocessor:
         self._step = int((100 - overlap) / 100 * block_size)
         self._window_type = window_type
 
-    def preprocess(self, audio_path: str) -> Tuple[int, np.ndarray, np.ndarray]:
+    def preprocess(self, audio_path: str) -> Tuple[int, np.ndarray, np.ndarray, np.ndarray]:
         """
         Loads an audio signal from given path and performs preprocessing.
 
@@ -70,10 +71,8 @@ class Preprocessor:
         signal, sample_rate = sf.read(audio_path)
         if self._preemphasis_coeff is not None:
             signal = self.__preemphasis(signal)
-        # blocks = self.__framing(signal)
-        # windowed_blocks = self.__windowing(blocks)
-        # dft_blocks = self.__fft(windowed_blocks)
-        return signal, sample_rate#, windowed_blocks, dft_blocks
+        stft_magnitude, stft_phase = self.__stft(signal)
+        return signal, sample_rate, stft_magnitude, stft_phase
 
     def __preemphasis(self, signal: np.ndarray) -> np.ndarray:
         """
@@ -92,77 +91,27 @@ class Preprocessor:
         """
         return lfilter([1, -self._preemphasis_coeff], [1], signal)
 
-    def __framing(self, signal: np.ndarray) -> np.ndarray:
+    def __stft(self, signal):
         """
-        Divides an audio signal into overlapping frames.
+        Performs Short-Time Fourier Transform on the given signal.
 
         Parameters
         ----------
         signal : numpy.ndarray
-            Signal to be framed
+            Signal to perform STFT on
 
         Returns
         -------
-        blocks : numpy.ndarray
-            Framed signal
-            Shape: (nblocks, block_size)
+        magnitude : numpy.ndarray
+        phase : numpy.ndarray
 
         """
-        length = signal.size
-        nblocks = (length - self._block_size + self._step) // self._step
-        nremaining_samples = (length - self._block_size + self._step) % self._step
-        if nremaining_samples != 0:
-            nblocks = nblocks + 1
-        nblocks = int(nblocks)
-        blocks = np.zeros((nblocks, self._block_size))
-        for i in range(nblocks - 1):
-            blocks[i] = signal[i * self._step : i * self._step + self._block_size]
-        if nremaining_samples != 0:
-            last_block = np.pad(
-                signal[-nremaining_samples:],
-                (0, self._block_size - nremaining_samples),
-                mode="constant",
-            )
-            blocks[-1] = last_block
-        return blocks
-
-    def __windowing(self, blocks: np.ndarray) -> np.ndarray:
-        """
-        Applies a window function to each frame.
-        Currently supports window types available in scipy's signal module.
-
-        Parameters
-        ----------
-        blocks: numpy.ndarray
-            Framed signal
-
-        Returns
-        -------
-        windowed_blocks : numpy.ndarray
-            Windowed signal frames
-            Shape: (nblocks, block_size)
-
-        """
-        w = get_window(window=self._window_type, Nx=self._block_size)
-        windowed_blocks = np.multiply(blocks[:], w)
-        return windowed_blocks
-
-    def __fft(self, windowed_blocks: np.ndarray) -> np.ndarray:
-        """
-        Computes the Fast Fourier Transform (FFT) for each frame.
-
-        Parameters
-        ----------
-        windowed_blocks : numpy.ndarray
-            Windowed signal frames
-            Shape: (nblocks, block_size)
-
-        Returns
-        -------
-        dft_blocks : numpy.ndarray
-            FFT blocks
-            Shape: (nblocks, block_size // 2 + 1)
-
-        """
-        dft_blocks = np.apply_along_axis(np.fft.fft, 1, windowed_blocks)
-        return dft_blocks
+        stft = librosa.stft(
+            y=signal,
+            n_fft=self._block_size,
+            hop_length=self._step,
+            window=self._window_type
+        )
+        magnitude = np.abs(stft)
+        phase = np.angle(stft)
+        return magnitude, phase

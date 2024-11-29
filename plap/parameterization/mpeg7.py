@@ -30,7 +30,7 @@ class MPEG7:
     #  - Harmonic Spectral Deviation Descriptor HSD TODO COMPARISON
     #  - Harmonic Spectral Spread Descriptor HSS TODO COMPARISON
     #  - Harmonic Spectral Variation Descriptor HSV TODO COMPARISON
-    # Spectral Basic
+    # Spectral Basis
     #  - Audio Spectrum Basis Descriptor ASB TODO PORT
     #  - Audio Spectrum Projection Descriptor ASP TODO PORT
     # Silence Descriptor SD
@@ -199,6 +199,7 @@ class MPEG7:
             startattack_pos -= 1
 
         log_attack_time = np.log10(time_v[stopattack_pos] - time_v[startattack_pos])
+        print(f"t[stop], t[start]: {time_v[stopattack_pos], time_v[startattack_pos]}")
         return log_attack_time
 
     # Temporal Centroid TC
@@ -309,7 +310,7 @@ class MPEG7:
         '''
         Creates a structure of the default values to be used throughout the descriptors.
         '''
-        hopsize = [self.sample_rate * 30, 1000] # default 30ms 
+        hopsize = [self.sample_rate * 30, 1000] # default 30ms
         # Get the quotient, remainder numerator, and remainder denominator
         num = hopsize[0]
         den = hopsize[1]
@@ -353,33 +354,22 @@ class MPEG7:
 
         # Frequency vector (half of the spectrum)
         fft_freq = np.arange(self.fft_size // 2 + 1) * self.sample_rate / self.fft_size
-        # print("fft_freq[400:405]: ", fft_freq[400:405])
 
         # Replace frequencies less than 62.5Hz with nominal freq 31.25Hz
         num_less_low_freq = np.sum(fft_freq < low_freq)
         fft_freq = np.concatenate(([31.25], fft_freq[num_less_low_freq:]))
-        # print(fft_freq.shape)
-        # print("fft_freq[400:405]: ", fft_freq[400:405])
 
         # Log-scaled frequencies relative to 1kHz
         fft_freq_log = np.log2(fft_freq / 1000)
-        # print("fft_freq_log[400:405]: ", fft_freq_log[400:405])
-        # print("fft_freq_log[50:55]: ", fft_freq_log[50:55])
 
         # Calculate powers !!! something off, check again after implementing specgram2 in getspec instead of librosa
         powers = fftout**2
         powers[1:-1, :] = 2 * powers[1:-1, :]
-        # print("powers[400:405, 95:97]: ", powers[400:405, 95:97])
-        # print("powers[:5, :2]: ", powers[:5, :2])
-        # print(powers.shape)
 
         # Sum powers for the frequencies below loedge
         if num_less_low_freq > 1:
             summed_powers = np.sum(powers[:num_less_low_freq, :], axis=0, keepdims=True)
             powers = np.concatenate((summed_powers, powers[num_less_low_freq:, :]), axis=0)
-        # print("powers[400:405, 95:97]: ", powers[400:405, 95:97])
-        # print("powers[:5, :2]: ", powers[:5, :2])
-        # print(powers.shape)
 
         # Calculate the Audio Spectrum Centroid !!! may be something wrong here as well
         audio_spectrum_centroid = np.sum(fft_freq_log[:, np.newaxis] * powers, axis=0) / (np.sum(powers, axis=0) + np.finfo(float).eps)
