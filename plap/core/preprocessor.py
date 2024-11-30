@@ -45,7 +45,7 @@ class Preprocessor:
         self._step = int((100 - overlap) / 100 * block_size)
         self._window_type = window_type
 
-    def preprocess(self, audio_path: str) -> Tuple[int, np.ndarray, np.ndarray, np.ndarray]:
+    def preprocess(self, audio_path: str) -> Tuple[int, np.ndarray, np.ndarray]:
         """
         Loads an audio signal from given path and performs preprocessing.
 
@@ -60,19 +60,15 @@ class Preprocessor:
             Raw audio data
         sample_rate : int
             Sample rate (sampling frequency)
-        # windowed_blocks : numpy.ndarray
-        #     Windowed signal frames
-        #     Shape: (nblocks, block_size)
-        # dft_blocks : numpy.ndarray
-        #     FFT blocks (specra)
-        #     Shape: (nblocks, block_size // 2 + 1)
+        stft_spectrum : numpy.ndarray
+            Complex spectrum computed using librosa.stft
 
         """
         signal, sample_rate = sf.read(audio_path)
         if self._preemphasis_coeff is not None:
             signal = self.__preemphasis(signal)
-        stft_magnitude, stft_phase = self.__stft(signal)
-        return signal, sample_rate, stft_magnitude, stft_phase
+        stft_spectrum = self.__stft(signal)
+        return signal, sample_rate, stft_spectrum
 
     def __preemphasis(self, signal: np.ndarray) -> np.ndarray:
         """
@@ -112,6 +108,4 @@ class Preprocessor:
             hop_length=self._step,
             window=self._window_type
         )
-        magnitude = np.abs(stft)
-        phase = np.angle(stft)
-        return magnitude, phase
+        return stft

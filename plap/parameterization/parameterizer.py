@@ -1,6 +1,9 @@
 from plap.parameterization.fvector import FeatureVector
 from plap.core.preprocessor import Preprocessor
-from plap.parameterization.mpeg7 import MPEG7
+from plap.parameterization.new_mpeg7.basic_spectral import BasicSpectral
+from plap.parameterization.new_mpeg7.signal_parameters import SignalParameters
+from plap.parameterization.new_mpeg7.timbral_temporal import TimbralTemporal
+from plap.parameterization.new_mpeg7.timbral_spectral import TimbralSpectral
 import numpy as np
 
 
@@ -11,54 +14,66 @@ class Parameterizer:
         audio_path: str,
         preprocessor: Preprocessor
     ) -> None:     
-        self.preprocessor = preprocessor
-        # self.signal, self.sample_rate, self.windowed_blocks, self.dft_blocks = preprocessor.preprocess(audio_path)
-        self.signal, self.sample_rate, _, _ = preprocessor.preprocess(audio_path)
-        self.mpeg7 = MPEG7(self.signal, self.sample_rate)
+        self.preprocessor = preprocessor if preprocessor is not None else Preprocessor()
+        self.signal, self.sample_rate, self.stft_spectrum = preprocessor.preprocess(audio_path)
+        self.magnitude = np.abs(self.stft_spectrum)
+
+        self._basic_spectral_parameterizer = BasicSpectral(
+            sample_rate=self.sample_rate,
+            block_size=self.preprocessor._block_size,
+            stft_magnitude=self.magnitude
+            )
+        self._timbral_temporal_parameterizer = TimbralTemporal(
+            aw=self.signal,
+            sample_rate=self.sample_rate,
+            block_size=self.preprocessor._block_size,
+            step=self.preprocessor._step
+        )
+        self._timbral_spectral_parameterizer = TimbralSpectral(
+            aw=self.signal,
+            sample_rate=self.sample_rate,
+            block_size=self.preprocessor._block_size,
+            step=self.preprocessor._step,
+            stft_magnitude=self.magnitude
+        )
+        self._signal_parameters_parameterizer = SignalParameters(
+            aw=self.signal,
+            sample_rate=self.sample_rate,
+            block_size=self.preprocessor._block_size,
+            step=self.preprocessor._step
+        )
 
     @staticmethod
     def parameterize(audio_path: str, fvector: FeatureVector, preprocessor: Preprocessor = None):
         """
         """
-        # Create default preprocessor
-        if preprocessor is None:
-            preprocessor = Preprocessor()
-
         # Create Parameterizer object
         parameterizer = Parameterizer(audio_path=audio_path, preprocessor=preprocessor)
 
         first = True
         for feature in fvector.features:
             if first:
-                fvector.values = np.array([parameterizer.calc_feature(feature, fvector.features[feature])])
+                fvector.values = np.array([parameterizer.calc_feature(feature)])
                 first = False
             else:
-                fvector.values = np.append(fvector.values, parameterizer.calc_feature(feature, fvector.features[feature]))
+                fvector.values = np.append(fvector.values, parameterizer.calc_feature(feature))
 
-        # fvector.values = np.empty([len(fvector.features)])
-        # for index, (feature, _) in enumerate(fvector.features.items()):
-        #     start_time = time.time()
-        #     v = parameterizer.calc_feature(feature=feature, feature_args=fvector.features[feature])
-        #     fvector.values[index] = v
-        #     print(f"{feature} execution time: {time.time() - start_time}")
-
-
-
-    def calc_feature(self, feature: str, feature_args: list) -> np.ndarray:
+    def calc_feature(self, feature: str) -> np.ndarray:
         feature = feature.lower()
         # Dictionary with deferred evaluation using lambda
         feature_map = {
-            "lat": lambda: self.mpeg7.lat(),
-            "tc": lambda: self.mpeg7.tc(),
-            "sc": lambda: np.mean(self.mpeg7.sc()),
-            "hsc": lambda: self.mpeg7.hsc(),
-            "hsd": lambda: self.mpeg7.hsd(),
-            "hss": lambda: self.mpeg7.hss(),
-            "hsv": lambda: self.mpeg7.hsv(),
-            "aff": lambda: np.mean(self.mpeg7.aff()),
-            "asc": lambda: np.mean(self.mpeg7.asc()),
-            "ass": lambda: np.mean(self.mpeg7.ass()),
-            "asf": lambda: np.mean(self.mpeg7.asf()),
+            "lat": lambda: self._timbral_temporal_parameterizer.lat(),
+            "tc": lambda: self._timbral_temporal_parameterizer.tc(),
+            "sc": lambda: np.mean(self._timbral_spectral_parameterizer.sc()),
+            "hsc": lambda: self._timbral_spectral_parameterizer.hsc(),
+            "hsd": lambda: self._timbral_spectral_parameterizer.hsd(),
+            "hss": lambda: self._timbral_spectral_parameterizer.hss(),
+            "hsv": lambda: self._timbral_spectral_parameterizer.hsv(),
+            "aff": lambda: np.mean(self._signal_parameters_parameterizer.aff()),
+            "ase": lambda: np.mean(self._basic_spectral_parameterizer.ase()),
+            "asc": lambda: np.mean(self._basic_spectral_parameterizer.asc()),
+            "ass": lambda: np.mean(self._basic_spectral_parameterizer.ass()),
+            "asf": lambda: np.mean(self._basic_spectral_parameterizer.asf()),
         }
         res = feature_map[feature]()
         return res

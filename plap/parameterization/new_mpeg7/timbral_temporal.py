@@ -1,7 +1,6 @@
 from typing import Tuple
 
 import numpy as np
-from scipy.signal import hilbert
 import librosa
 
 class TimbralTemporal:
@@ -10,6 +9,8 @@ class TimbralTemporal:
     #  - Log Attack Time Descriptor LAT
     #  - Temporal Centroid Descriptor TC
     #------------------------------------------
+
+    # TODO document functions (translate descriptions from my thesis)
 
     def __init__(self, aw: np.ndarray, sample_rate: int, block_size: int, step: int) -> None:
 
@@ -22,10 +23,15 @@ class TimbralTemporal:
         self.tc_d = None
 
     def lat(self) -> float:
+        """
+        Calculate the Log Attack Time Descriptor (LAT)
+        
+        """
         if self.lat_d is None:
             self.lat_d, self.tc_d = self.__lat_tc()
         return self.lat_d
     
+    # Temporal Centroid TC
     def tc(self) -> float:
         if self.tc_d is None:
             self.lat_d, self.tc_d = self.__lat_tc()
@@ -50,6 +56,5 @@ class TimbralTemporal:
             start_attack_pos -= 1
 
         log_attack_time = np.log10(t[stop_attack_pos] - t[start_attack_pos])
-        print(f"t[stop], t[start]: {t[stop_attack_pos], t[start_attack_pos]}")
 
         return log_attack_time, temporal_centroid

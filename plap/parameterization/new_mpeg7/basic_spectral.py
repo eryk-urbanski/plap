@@ -12,9 +12,10 @@ class BasicSpectral:
     #  - Audio Spectrum Flatness Descriptor ASF
     #------------------------------------------
 
-    def __init__(self, aw: np.ndarray, sample_rate: int, block_size: int, stft_magnitude: np.ndarray):
+    # TODO document functions (translate descriptions from my thesis)
 
-        self.aw = aw
+    def __init__(self, sample_rate: int, block_size: int, stft_magnitude: np.ndarray):
+
         self.sample_rate = sample_rate
         self.block_size = block_size
         self.magnitude = stft_magnitude
@@ -25,22 +26,28 @@ class BasicSpectral:
         self.ass_d = None
         self.asf_d = None
 
-    # Audio Spectrum Envelope ASE
     def ase(self):
+        """
+        Calculate the Audio Spectrum Envelope Descriptor (ASE)
+
+        """
         if self.ase_d is None:
             self.ase_d = self.__ase()
         return self.ase_d
 
+    # Audio Spectrum Centroid ASC
     def asc(self):
         if self.asc_d is None:
             self.asc_d, self.ass_d = self.__asc_ass()
         return self.asc_d
 
+    # Audio Spectrum Spread ASS
     def ass(self):
         if self.ass_d is None:
             self.asc_d, self.ass_d = self.__asc_ass()
         return self.ass_d
 
+    # Audio Spectrum Flatness ASF
     def asf(self):
         if self.asf_d is None:
             self.asf_d = self.__asf()
