@@ -1,9 +1,9 @@
 from plap.parameterization.fvector import FeatureVector
 from plap.core.preprocessor import Preprocessor
-from plap.parameterization.new_mpeg7.basic_spectral import BasicSpectral
-from plap.parameterization.new_mpeg7.signal_parameters import SignalParameters
-from plap.parameterization.new_mpeg7.timbral_temporal import TimbralTemporal
-from plap.parameterization.new_mpeg7.timbral_spectral import TimbralSpectral
+from plap.parameterization.mpeg7.basic_spectral import BasicSpectral
+from plap.parameterization.mpeg7.signal_parameters import SignalParameters
+from plap.parameterization.mpeg7.timbral_temporal import TimbralTemporal
+from plap.parameterization.mpeg7.timbral_spectral import TimbralSpectral
 import numpy as np
 
 
