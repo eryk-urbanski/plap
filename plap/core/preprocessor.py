@@ -26,17 +26,17 @@ class Preprocessor:
         Parameters
         ----------
         block_size : int
-            Size of each frame
+            Size of each frame\n
                 default value = 512
         overlap : int
-            Overlapping rate
+            Overlapping rate\n
                 default value = 50
         window_type : str
-            Name of the window type
+            Name of the window type\n
                 default value = "hann"
         preemhpasis_coeff : int
-            Pre-emphasis coefficient
-            If set to None, pre-emphasis is not performed
+            Pre-emphasis coefficient\n
+            If set to None, pre-emphasis is not performed\n
                 default value = 0.68
 
         """
@@ -98,8 +98,7 @@ class Preprocessor:
 
         Returns
         -------
-        magnitude : numpy.ndarray
-        phase : numpy.ndarray
+        stft : numpy.ndarray
 
         """
         stft = librosa.stft(

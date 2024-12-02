@@ -1,9 +1,10 @@
 from plap.parameterization.fvector import FeatureVector
 from plap.core.preprocessor import Preprocessor
-from plap.parameterization.mpeg7.basic_spectral import BasicSpectral
+from plap.parameterization.mpeg7.basic_d import BasicD
+from plap.parameterization.mpeg7.basic_spectral_d import BasicSpectralD
 from plap.parameterization.mpeg7.signal_parameters import SignalParameters
-from plap.parameterization.mpeg7.timbral_temporal import TimbralTemporal
-from plap.parameterization.mpeg7.timbral_spectral import TimbralSpectral
+from plap.parameterization.mpeg7.timbral_temporal_d import TimbralTemporalD
+from plap.parameterization.mpeg7.timbral_spectral_d import TimbralSpectralD
 import numpy as np
 
 
@@ -18,18 +19,24 @@ class Parameterizer:
         self.signal, self.sample_rate, self.stft_spectrum = preprocessor.preprocess(audio_path)
         self.magnitude = np.abs(self.stft_spectrum)
 
-        self._basic_spectral_parameterizer = BasicSpectral(
+        self._basic_parameterizer = BasicD(
+            signal=self.signal,
+            sample_rate=self.sample_rate,
+            block_size=self.preprocessor._block_size,
+            step=self.preprocessor._step,
+            stft_magnitude=self.magnitude
+        )
+        self._basic_spectral_parameterizer = BasicSpectralD(
             sample_rate=self.sample_rate,
             block_size=self.preprocessor._block_size,
             stft_magnitude=self.magnitude
             )
-        self._timbral_temporal_parameterizer = TimbralTemporal(
-            aw=self.signal,
+        self._timbral_temporal_parameterizer = TimbralTemporalD(
+            ap=self._basic_parameterizer.ap(),
             sample_rate=self.sample_rate,
-            block_size=self.preprocessor._block_size,
             step=self.preprocessor._step
         )
-        self._timbral_spectral_parameterizer = TimbralSpectral(
+        self._timbral_spectral_parameterizer = TimbralSpectralD(
             aw=self.signal,
             sample_rate=self.sample_rate,
             block_size=self.preprocessor._block_size,

@@ -4,7 +4,7 @@ import numpy as np
 import librosa
 from scipy.ndimage import uniform_filter1d
 
-class TimbralSpectral:
+class TimbralSpectralD:
     ## List of Timbral Spectral Descriptors
     #------------------------------------------
     #  - Spectral Centroid Descriptor SC
@@ -109,7 +109,7 @@ class TimbralSpectral:
 
         for i in range(nb_frames):
             ampl = self.harmonic_spectrum[:, i]
-            dot_ampl_ampl = np.dot(ampl, ampl)
+            dot_ampl_ampl = np.dot(ampl, ampl) + eps
 
             # inrg
             i_nrg[i] = np.sqrt(dot_ampl_ampl)
@@ -120,7 +120,7 @@ class TimbralSpectral:
 
             # ihss
             num = np.dot((ampl * (freqs-tmp)), (ampl * (freqs-tmp))) # Faster than np.sum((ampl * (freqs-tmp))**2)
-            i_hss[i] = 1/tmp * np.sqrt(num/dot_ampl_ampl)
+            i_hss[i] = 1/(tmp+eps) * np.sqrt(num/dot_ampl_ampl)
 
             # ihsd
             smoothed_spectral_env = uniform_filter1d(ampl, size=3, mode="nearest")
@@ -129,8 +129,8 @@ class TimbralSpectral:
 
             # ihsv
             if i > 0:
-                crossprod = np.dot(old_ampl, ampl)  # Faster than np.sum(old_ampl*ampl)
-                autoprod1 = np.dot(old_ampl, old_ampl) # Faster than np.sum(old_ampl**2)
+                crossprod = np.dot(old_ampl, ampl) + eps  # Faster than np.sum(old_ampl*ampl)
+                autoprod1 = np.dot(old_ampl, old_ampl) + eps # Faster than np.sum(old_ampl**2)
                 autoprod2 = dot_ampl_ampl
                 i_hsv[i] = 1 - crossprod / np.sqrt(autoprod1*autoprod2)
 

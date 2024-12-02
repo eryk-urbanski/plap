@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 import librosa
 
-class TimbralTemporal:
+class TimbralTemporalD:
     ## List of Timbral Temporal Descriptors
     #------------------------------------------
     #  - Log Attack Time Descriptor LAT
@@ -12,11 +12,10 @@ class TimbralTemporal:
 
     # TODO document functions (translate descriptions from my thesis)
 
-    def __init__(self, aw: np.ndarray, sample_rate: int, block_size: int, step: int) -> None:
+    def __init__(self, ap: np.ndarray, sample_rate: int, step: int) -> None:
 
-        self.aw = aw
+        self.ap_d = ap
         self.sample_rate = sample_rate
-        self.block_size = block_size
         self.step = step
 
         self.lat_d = None
@@ -41,7 +40,7 @@ class TimbralTemporal:
     def __lat_tc(self) -> Tuple[float, float]:
         threshold_percent = 2
 
-        amplitude_envelope = librosa.feature.rms(y=self.aw, frame_length=self.block_size, hop_length=self.step)[0]
+        amplitude_envelope = self.ap_d
         frames = range(len(amplitude_envelope))
         t = librosa.frames_to_time(frames, sr=self.sample_rate, hop_length=self.step)
 

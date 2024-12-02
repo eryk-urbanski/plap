@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 import librosa
 
-class BasicSpectral:
+class BasicSpectralD:
     ## List of Basic Spectral Descriptors
     #------------------------------------------
     #  - Audio Spectrum Envelope Descriptor ASE
@@ -55,6 +55,8 @@ class BasicSpectral:
 
 
     def __get_powers(self, magnitude: np.ndarray):
+        # TODO get it from BasicD as rms calculated from stft_magnitude, but it's meaned through freqs, 
+        # so would need modifications in __asc_ass()
         powers = magnitude**2
         powers[1:-1, :] = 2 * powers[1:-1, :]
         return powers
