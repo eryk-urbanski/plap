@@ -37,16 +37,17 @@ class FeatureVector:
     
     SUPPORTED_MPEG7_FEATURES = {
         # Basic Spectral
-        "ASF": None,
-        "ASC": None,
-        "ASS": None,
+        "ASE": None,
+        "ASF": None, "ASF_MEAN": None,
+        "ASC": None, "ASC_VAR": None,
+        "ASS": None, "ASS_VAR": None,
         # Signal Parameters
-        "AFF": None,
+        "AFF": None, "AFF_VAR": None,
         # Timbral Temporal
         "LAT": None,
         "TC": None,
         # Timbral Spectral
-        "SC": None,
+        "SC": None, "SC_VAR": None,
         "HSC": None,
         "HSD": None,
         "HSS": None,

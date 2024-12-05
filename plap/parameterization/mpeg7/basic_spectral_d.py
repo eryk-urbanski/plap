@@ -14,10 +14,12 @@ class BasicSpectralD:
 
     # TODO document functions (translate descriptions from my thesis)
 
-    def __init__(self, sample_rate: int, block_size: int, stft_magnitude: np.ndarray):
+    def __init__(self, aw: np.ndarray, sample_rate: int, block_size: int, window_type: str, stft_magnitude: np.ndarray):
 
+        self.aw = aw
         self.sample_rate = sample_rate
         self.block_size = block_size
+        self.window_type = window_type
         self.magnitude = stft_magnitude
         self.powers = self.__get_powers(self.magnitude)
 
@@ -96,8 +98,33 @@ class BasicSpectralD:
         return audio_spectrum_centroid, audio_spectrum_spread
 
     def __asf(self) -> np.ndarray:
-        spectral_flatness = librosa.feature.spectral_flatness(
-            y=None,
-            S=self.magnitude
+
+        low_edge = 250
+        high_edge = 16000
+
+        fftout = librosa.stft(
+            y=self.aw,
+            n_fft=self.block_size,
+            hop_length=self.block_size,
+            window=self.window_type,
         )
-        return spectral_flatness
+        fftout = np.abs(fftout) ** 2
+        freqs = librosa.fft_frequencies(sr=self.sample_rate, n_fft=self.block_size)
+
+        num_bands = int(np.floor(4 * np.log2(high_edge / low_edge)))
+
+        audio_spectrum_flatness = np.zeros((num_bands, fftout.shape[1]))
+
+        for k in range(num_bands):
+            # Get the frequency indices for the current band
+            f_low = low_edge * (2 ** (k / 4))
+            f_high = high_edge * (2 ** ((k+1) / 4))
+            band_start = np.searchsorted(freqs, f_low)
+            band_end = np.searchsorted(freqs, f_high)
+
+            # Extract the power spectrum for the band
+            band_spectrum = fftout[band_start:band_end, :]
+            audio_spectrum_flatness[k, :] = librosa.feature.spectral_flatness(S=band_spectrum)
+
+        audio_spectrum_flatness = np.mean(audio_spectrum_flatness.T, axis=0)
+        return audio_spectrum_flatness

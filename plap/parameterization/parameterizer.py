@@ -27,10 +27,12 @@ class Parameterizer:
             stft_magnitude=self.magnitude
         )
         self._basic_spectral_parameterizer = BasicSpectralD(
+            aw=self.signal,
             sample_rate=self.sample_rate,
             block_size=self.preprocessor._block_size,
+            window_type=self.preprocessor._window_type,
             stft_magnitude=self.magnitude
-            )
+        )
         self._timbral_temporal_parameterizer = TimbralTemporalD(
             ap=self._basic_parameterizer.ap(),
             sample_rate=self.sample_rate,
@@ -72,15 +74,20 @@ class Parameterizer:
             "lat": lambda: self._timbral_temporal_parameterizer.lat(),
             "tc": lambda: self._timbral_temporal_parameterizer.tc(),
             "sc": lambda: np.mean(self._timbral_spectral_parameterizer.sc()),
+            "sc_var": lambda: np.var(self._timbral_spectral_parameterizer.sc()),
             "hsc": lambda: self._timbral_spectral_parameterizer.hsc(),
             "hsd": lambda: self._timbral_spectral_parameterizer.hsd(),
             "hss": lambda: self._timbral_spectral_parameterizer.hss(),
             "hsv": lambda: self._timbral_spectral_parameterizer.hsv(),
             "aff": lambda: np.mean(self._signal_parameters_parameterizer.aff()),
+            "aff_var": lambda: np.var(self._signal_parameters_parameterizer.aff()),
             "ase": lambda: np.mean(self._basic_spectral_parameterizer.ase()),
             "asc": lambda: np.mean(self._basic_spectral_parameterizer.asc()),
+            "asc_var": lambda: np.var(self._basic_spectral_parameterizer.asc()),
             "ass": lambda: np.mean(self._basic_spectral_parameterizer.ass()),
-            "asf": lambda: np.mean(self._basic_spectral_parameterizer.asf()),
+            "ass_var": lambda: np.var(self._basic_spectral_parameterizer.ass()),
+            "asf": lambda: self._basic_spectral_parameterizer.asf(),
+            "asf_mean": lambda: np.mean(self._basic_spectral_parameterizer.asf())
         }
         res = feature_map[feature]()
         return res
