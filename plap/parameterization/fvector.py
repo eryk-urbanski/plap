@@ -25,10 +25,9 @@ class FeatureVector:
     This would work by setting the default additional parameters for mfcc. NOT YET
     """
 
-    # SUPPORTED_CEPSTRAL_FEATURES = {
-    #     "gfcc": [],
-    #     "mfcc": [],
-    #     }
+    SUPPORTED_CEPSTRAL_FEATURES = {
+        "MFCC": None,
+        }
     
     # SUPPORTED_TIMEDOMAIN_FEATURES = {
     #     "rms": None,
@@ -38,7 +37,7 @@ class FeatureVector:
     SUPPORTED_MPEG7_FEATURES = {
         # Basic Spectral
         "ASE": None,
-        "ASF": None, "ASF_MEAN": None,
+        "ASF": None, "ASF_MEAN": None, "ASF_VAR": None, "ASF_VAR_MEAN": None,
         "ASC": None, "ASC_VAR": None,
         "ASS": None, "ASS_VAR": None,
         # Signal Parameters
@@ -52,11 +51,14 @@ class FeatureVector:
         "HSD": None,
         "HSS": None,
         "HSV": None,
+        # Spectral Basis
+        "ASB": None, "ASB_MEAN": None,
+        "ASP": None, "ASP_MEAN": None,
     }
 
     SUPPORTED_FEATURES = {
         # **SUPPORTED_TIMEDOMAIN_FEATURES,
-        # **SUPPORTED_CEPSTRAL_FEATURES,
+        **SUPPORTED_CEPSTRAL_FEATURES,
         **SUPPORTED_MPEG7_FEATURES
         }
 

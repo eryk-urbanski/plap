@@ -27,6 +27,7 @@ class BasicSpectralD:
         self.asc_d = None
         self.ass_d = None
         self.asf_d = None
+        self.asf_variance_across_bands_d = None
 
     def ase(self):
         """
@@ -50,10 +51,13 @@ class BasicSpectralD:
         return self.ass_d
 
     # Audio Spectrum Flatness ASF
-    def asf(self):
+    def asf(self, variance_across_bands: bool = False):
         if self.asf_d is None:
-            self.asf_d = self.__asf()
-        return self.asf_d
+            self.asf_d, self.asf_variance_across_bands_d = self.__asf()
+        if variance_across_bands is True:
+            return self.asf_variance_across_bands_d
+        else:
+            return self.asf_d
 
 
     def __get_powers(self, magnitude: np.ndarray):
@@ -64,9 +68,7 @@ class BasicSpectralD:
         return powers
 
     def __ase(self):
-        # linear to log bands map
-        # multiply powers with map
-        pass
+        return self.powers
 
     def __asc_ass(self) -> Tuple[np.ndarray, np.ndarray]:
         low_freq = 62.5
@@ -126,5 +128,6 @@ class BasicSpectralD:
             band_spectrum = fftout[band_start:band_end, :]
             audio_spectrum_flatness[k, :] = librosa.feature.spectral_flatness(S=band_spectrum)
 
+        audio_spectrum_flatness_v = np.var(audio_spectrum_flatness.T, axis=0)
         audio_spectrum_flatness = np.mean(audio_spectrum_flatness.T, axis=0)
-        return audio_spectrum_flatness
+        return audio_spectrum_flatness, audio_spectrum_flatness_v

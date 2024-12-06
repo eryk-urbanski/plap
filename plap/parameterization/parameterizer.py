@@ -5,6 +5,8 @@ from plap.parameterization.mpeg7.basic_spectral_d import BasicSpectralD
 from plap.parameterization.mpeg7.signal_parameters import SignalParameters
 from plap.parameterization.mpeg7.timbral_temporal_d import TimbralTemporalD
 from plap.parameterization.mpeg7.timbral_spectral_d import TimbralSpectralD
+from plap.parameterization.mpeg7.spectral_basis_d import SpectralBasisD
+from plap.parameterization.cepstral.cepstral_d import CepstralD
 import numpy as np
 
 
@@ -51,6 +53,16 @@ class Parameterizer:
             block_size=self.preprocessor._block_size,
             step=self.preprocessor._step
         )
+        self._spectral_basis_parameterizer = SpectralBasisD(
+            ase=self._basic_spectral_parameterizer.ase()
+        )
+        self._cepstral_parameterizer = CepstralD(
+            aw=self.signal,
+            sample_rate=self.sample_rate,
+            block_size=self.preprocessor._block_size,
+            step=self.preprocessor._block_size,
+            window_type=self.preprocessor._window_type,
+        )
 
     @staticmethod
     def parameterize(audio_path: str, fvector: FeatureVector, preprocessor: Preprocessor = None):
@@ -87,7 +99,15 @@ class Parameterizer:
             "ass": lambda: np.mean(self._basic_spectral_parameterizer.ass()),
             "ass_var": lambda: np.var(self._basic_spectral_parameterizer.ass()),
             "asf": lambda: self._basic_spectral_parameterizer.asf(),
-            "asf_mean": lambda: np.mean(self._basic_spectral_parameterizer.asf())
+            "asf_mean": lambda: np.mean(self._basic_spectral_parameterizer.asf()),
+            "asf_var": lambda: self._basic_spectral_parameterizer.asf(variance_across_bands=True),
+            "asf_var_mean": lambda: np.mean(self._basic_spectral_parameterizer.asf(variance_across_bands=True)),
+            "asb": lambda: self._spectral_basis_parameterizer.asb(),
+            "asb_mean": lambda: np.mean(self._spectral_basis_parameterizer.asb()),
+            "asp": lambda: self._spectral_basis_parameterizer.asp(),
+            "asp_mean": lambda: np.mean(self._spectral_basis_parameterizer.asp()),
+
+            "mfcc": lambda: self._cepstral_parameterizer.mfcc(),
         }
         res = feature_map[feature]()
         return res
