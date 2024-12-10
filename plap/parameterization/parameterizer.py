@@ -93,7 +93,7 @@ class Parameterizer:
             "hsv": lambda: self._timbral_spectral_parameterizer.hsv(),
             "aff": lambda: np.mean(self._signal_parameters_parameterizer.aff()),
             "aff_var": lambda: np.var(self._signal_parameters_parameterizer.aff()),
-            "ase": lambda: np.mean(self._basic_spectral_parameterizer.ase()),
+            "ase": lambda: np.mean(self._basic_spectral_parameterizer.ase(), axis=0),
             "asc": lambda: np.mean(self._basic_spectral_parameterizer.asc()),
             "asc_var": lambda: np.var(self._basic_spectral_parameterizer.asc()),
             "ass": lambda: np.mean(self._basic_spectral_parameterizer.ass()),
