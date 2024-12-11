@@ -128,6 +128,6 @@ class BasicSpectralD:
             band_spectrum = fftout[band_start:band_end, :]
             audio_spectrum_flatness[k, :] = librosa.feature.spectral_flatness(S=band_spectrum)
 
-        audio_spectrum_flatness_v = np.var(audio_spectrum_flatness.T, axis=0)
-        audio_spectrum_flatness = np.mean(audio_spectrum_flatness.T, axis=0)
+        audio_spectrum_flatness_v = np.var(np.nan_to_num(audio_spectrum_flatness).T, axis=0)
+        audio_spectrum_flatness = np.mean(np.nan_to_num(audio_spectrum_flatness).T, axis=0)
         return audio_spectrum_flatness, audio_spectrum_flatness_v
