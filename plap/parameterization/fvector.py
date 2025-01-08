@@ -26,21 +26,38 @@ class FeatureVector:
     """
 
     SUPPORTED_CEPSTRAL_FEATURES = {
-        "gfcc": [],
-        "mfcc": [],
+        "MFCC": None,
         }
     
-    SUPPORTED_TIMEDOMAIN_FEATURES = {
-        "rms": None,
-        "zcr": None,
-        }
+    # SUPPORTED_TIMEDOMAIN_FEATURES = {
+    #     "rms": None,
+    #     "zcr": None,
+    #     }
     
     SUPPORTED_MPEG7_FEATURES = {
-        "SC": None,
+        # Basic Spectral
+        "ASE": None,
+        "ASF": None, "ASF_MEAN": None, "ASF_VAR": None, "ASF_VAR_MEAN": None,
+        "ASC": None, "ASC_VAR": None,
+        "ASS": None, "ASS_VAR": None,
+        # Signal Parameters
+        "AFF": None, "AFF_VAR": None,
+        # Timbral Temporal
+        "LAT": None,
+        "TC": None,
+        # Timbral Spectral
+        "SC": None, "SC_VAR": None,
+        "HSC": None,
+        "HSD": None,
+        "HSS": None,
+        "HSV": None,
+        # Spectral Basis
+        "ASB": None, "ASB_MEAN": None,
+        "ASP": None, "ASP_MEAN": None,
     }
 
     SUPPORTED_FEATURES = {
-        **SUPPORTED_TIMEDOMAIN_FEATURES,
+        # **SUPPORTED_TIMEDOMAIN_FEATURES,
         **SUPPORTED_CEPSTRAL_FEATURES,
         **SUPPORTED_MPEG7_FEATURES
         }
@@ -50,14 +67,18 @@ class FeatureVector:
         """
         self.features = {}
         self.parse_args(*args)
-        self.values = 0
+        self.values = np.empty([])
 
     def parse_args(self, *args):
         i = 0
         while i < len(args):
             feature = args[i]
-            if not isinstance(feature, str) or feature not in self.SUPPORTED_FEATURES:
+            if not isinstance(feature, str):
                 raise ValueError(f"Invalid feature: {feature}")
+            else:
+                feature = feature.upper()
+                if feature not in self.SUPPORTED_FEATURES:
+                    raise ValueError(f"Invalid feature: {feature}")
             if self.SUPPORTED_FEATURES[feature] is not None:
                 if i + 1 >= len(args) or not isinstance(args[i + 1], list):
                     raise ValueError(f"Missing or invalid parameters for '{feature}' feature")
